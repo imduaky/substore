@@ -609,14 +609,14 @@
     {
       "type": "selector",
       "tag": "✈️ TelegramDC1(NA)",
-      "outbounds": ["✈️ TelegramDC5(AP)","🙋 Select"],
+      "outbounds": ["✈️ TelegramDC5(AP)", "🙋 Select"],
       "default": "✈️ TelegramDC5(AP)",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "✈️ TelegramDC4(EU)",
-      "outbounds": ["✈️ TelegramDC5(AP)","🙋 Select"],
+      "outbounds": ["✈️ TelegramDC5(AP)", "🙋 Select"],
       "default": "✈️ TelegramDC5(AP)",
       "interrupt_exist_connections": true
     }

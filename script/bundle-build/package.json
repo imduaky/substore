@@ -9,5 +9,8 @@
   "scripts": {
     "run": "node main.js"
   },
-  "dependencies": {}
+  "dependencies": {
+    "acorn": "^8.19.0",
+    "acorn-walk": "^8.3.5"
+  }
 }

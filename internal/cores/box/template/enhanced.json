@@ -486,7 +486,7 @@
     {
       "type": "selector",
       "tag": "🐈 Git",
-      "outbounds": ["📦 Microsoft", "🙋 Select"],
+      "outbounds": ["📦 Microsoft"],
       "default": "📦 Microsoft",
       "interrupt_exist_connections": true
     },
@@ -500,7 +500,7 @@
     {
       "type": "selector",
       "tag": "📺 Youtube",
-      "outbounds": ["🔍 Google", "🙋 Select"],
+      "outbounds": ["🔍 Google"],
       "default": "🔍 Google",
       "interrupt_exist_connections": true
     },
@@ -521,14 +521,14 @@
     {
       "type": "selector",
       "tag": "✈️ TelegramDC1(NA)",
-      "outbounds": ["✈️ TelegramDC5(AP)","🙋 Select"],
+      "outbounds": ["✈️ TelegramDC5(AP)", "🙋 Select"],
       "default": "✈️ TelegramDC5(AP)",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "✈️ TelegramDC4(EU)",
-      "outbounds": ["✈️ TelegramDC5(AP)","🙋 Select"],
+      "outbounds": ["✈️ TelegramDC5(AP)", "🙋 Select"],
       "default": "✈️ TelegramDC5(AP)",
       "interrupt_exist_connections": true
     }

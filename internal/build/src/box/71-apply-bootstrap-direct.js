@@ -1,4 +1,6 @@
-const entrypoint = ({ config = {}, context, lib, constant = {}, ...rest }) => {
+const entrypoint = (args) => {
+  const { config, context, lib, constant } = args;
+
   const ghproxy = context.secret?.metadata?.ghproxy ?? "hk.gh-proxy.org";
   const githubDomains = [
     "raw.githubusercontent.com",
@@ -32,5 +34,5 @@ const entrypoint = ({ config = {}, context, lib, constant = {}, ...rest }) => {
       constant.outbound.direct;
   }
 
-  return { config, ...rest };
+  return { ...args, config };
 };

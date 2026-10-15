@@ -1,4 +1,6 @@
-const entrypoint = ({ proxies = [], config = {}, lib, constant = {}, context, ...rest }) => {
+const entrypoint = (args) => {
+  const { proxies, config, lib, constant, context } = args;
+
   const out = proxies.filter(
     (proxy) =>
       proxy?.properties?.hidden === undefined || !proxy.properties.hidden,
@@ -47,5 +49,5 @@ const entrypoint = ({ proxies = [], config = {}, lib, constant = {}, context, ..
         );
       }
     });
-  return { proxies, config, ...rest };
+  return { ...args, proxies, config };
 };

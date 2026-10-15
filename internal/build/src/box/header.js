@@ -10,24 +10,37 @@ Object.assign(constant, {
     direct: "dns-cn",
     ecs: "dns-ecs",
   },
+  network: {
+    tailnetIPRanges: ["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
+  },
 });
 
-const produce = (proxies = [], targetConstant = constant) => {
-  return JSON.parse(ProxyUtils.produce([...proxies], targetConstant.platform))
+const assembleConfig = (args) => {
+  const { config, proxies, endpoints, lib, constant } = args;
+
+  const assembled = {
+    ...config,
+    outbounds: [
+      ...(config.outbounds ?? []),
+      ...lib.default.produce(proxies, constant),
+    ],
+    endpoints: [
+      ...(config.endpoints ?? []),
+      ...lib.default.produceEndpoint(endpoints, constant),
+    ],
+  };
+
+  return assembled;
+};
+
+const produce = (proxies = [], constant = {}) => {
+  return JSON.parse(ProxyUtils.produce([...proxies], constant.platform))
     .outbounds;
 };
 
-const produceEndpoint = (endpoints = [], targetConstant = constant) => {
-  return JSON.parse(
-    ProxyUtils.produce(
-      [
-        ...endpoints.filter(
-          (e) => e.type === "tailscale" || e.type === "wireguard",
-        ),
-      ],
-      targetConstant.platform,
-    ),
-  ).endpoints;
+const produceEndpoint = (endpoints = [], constant = {}) => {
+  return JSON.parse(ProxyUtils.produce([...endpoints], constant.platform))
+    .endpoints;
 };
 
 const createSemverInfo = () => ({
@@ -140,6 +153,7 @@ const findTun = (config = {}) => {
 };
 
 lib.default = {
+  assembleConfig,
   produce,
   produceEndpoint,
   createSemverInfo,

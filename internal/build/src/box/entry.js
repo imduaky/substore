@@ -1,29 +1,6 @@
-const assembledConfigs = new WeakSet();
+const entrypoint = async (args) => {
+  const { context, lib, constant } = args;
 
-const assembleConfig = ({
-  config = {},
-  proxies = [],
-  endpoints = [],
-  lib,
-  constant = {},
-}) => {
-  if (assembledConfigs.has(config)) return config;
-  const assembled = {
-    ...config,
-    outbounds: [
-      ...(config.outbounds ?? []),
-      ...lib.default.produce(proxies, constant),
-    ],
-    endpoints: [
-      ...(config.endpoints ?? []),
-      ...lib.default.produceEndpoint(endpoints, constant),
-    ],
-  };
-  assembledConfigs.add(assembled);
-  return assembled;
-};
-
-const entrypoint = async ({ context = {}, lib, constant = {}, ...rest } = {}) => {
   const lookupQuery = (name) => {
     return $options?._req?.query?.[name];
   };
@@ -68,6 +45,7 @@ const entrypoint = async ({ context = {}, lib, constant = {}, ...rest } = {}) =>
         "tor",
         "ssh",
         "snell",
+        "tailcat",
       ].includes(proxy.type),
     );
     generated.endpoints = produced.filter((proxy) =>
@@ -83,30 +61,22 @@ const entrypoint = async ({ context = {}, lib, constant = {}, ...rest } = {}) =>
       generated.experimental[fe] = true;
     });
 
-  return { ...rest, ...generated };
+  return { ...args, ...generated };
 };
 
-const postEntrypoint = ({
-  config = {},
-  proxies = [],
-  endpoints = [],
-  lib,
-  constant = {},
-  context,
-  ...rest
-}) => {
-  const assembledConfig = assembleConfig({
-    config,
-    proxies,
-    endpoints,
-    lib,
-    constant,
-  });
-  const assembled = {
-    ...rest,
+const postEntrypoint = (args) => {
+  const { config, proxies, endpoints, lib, constant, experimental, context } =
+    args;
+
+  const assembledConfig = lib.default.assembleConfig(args);
+
+  // The entry post step is the final stack item, so emit after all post steps.
+  $content = experimental.format_output
+    ? JSON.stringify(assembledConfig, null, 2)
+    : JSON.stringify(assembledConfig);
+
+  return {
+    ...args,
     config: assembledConfig,
   };
-  // The entry post step is the final stack item, so emit after all post steps.
-  $content = JSON.stringify(assembled.config);
-  return assembled;
 };

@@ -932,8 +932,7 @@
       "type": "selector",
       "tag": "🐈 Git",
       "outbounds": [
-        "📦 Microsoft",
-        "🙋 Select"
+        "📦 Microsoft"
       ],
       "default": "📦 Microsoft",
       "interrupt_exist_connections": true
@@ -951,8 +950,7 @@
       "type": "selector",
       "tag": "📺 Youtube",
       "outbounds": [
-        "🔍 Google",
-        "🙋 Select"
+        "🔍 Google"
       ],
       "default": "🔍 Google",
       "interrupt_exist_connections": true

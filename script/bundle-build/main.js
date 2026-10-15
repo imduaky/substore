@@ -5,6 +5,8 @@
 
 const fs = require("fs");
 const path = require("path");
+const acorn = require("acorn");
+const walk = require("acorn-walk");
 
 const repoRoot = path.join(__dirname, "..", "..");
 const srcRoot = path.join(repoRoot, "internal", "build", "src");
@@ -41,12 +43,37 @@ const featureFile = (name) => path.join(featuresDir, name, "load.js");
 
 const sourceBody = (file) => fs.readFileSync(file, "utf8").replace(/^#!.*\n/, "");
 
+// Fragments and features are inlined as plain script bodies (features inside
+// an arrow function), so parse them as scripts and allow a top-level return.
+const parseSource = (body, file) => {
+  try {
+    return acorn.parse(body, {
+      ecmaVersion: "latest",
+      sourceType: "script",
+      allowReturnOutsideFunction: true,
+      allowAwaitOutsideFunction: true,
+    });
+  } catch (error) {
+    throw new Error(`${path.relative(repoRoot, file)}: ${error.message}`);
+  }
+};
+
 // `lib.foo` is the public dependency syntax for a build library. Assignment
 // sites are included too, which lets a library expose a nested dependency.
-const libReferences = (body) => {
+const libReferences = (ast) => {
   const names = new Set();
-  const pattern = /\blib\.([A-Za-z_$][\w$]*)\b/g;
-  for (const match of body.matchAll(pattern)) names.add(match[1]);
+  walk.simple(ast, {
+    MemberExpression(node) {
+      if (
+        !node.computed &&
+        node.object.type === "Identifier" &&
+        node.object.name === "lib" &&
+        node.property.type === "Identifier"
+      ) {
+        names.add(node.property.name);
+      }
+    },
+  });
   return names;
 };
 
@@ -64,7 +91,7 @@ const resolveFeatures = (rootReferences, order) => {
       throw new Error(`lib.${name} not found at ${file}`);
     }
     needed.add(name);
-    for (const dependency of libReferences(sourceBody(file))) {
+    for (const dependency of libReferences(parseSource(sourceBody(file), file))) {
       if (dependency !== "default" && dependency !== name) queue.push(dependency);
     }
   }
@@ -76,41 +103,71 @@ const identifierFor = (file) => {
   return `_${name}`;
 };
 
-const renameFunction = (body, name, replacement) => {
-  const declaration = new RegExp(`(\\b(?:async\\s+)?function\\s+)${name}\\b`);
-  if (declaration.test(body)) return body.replace(declaration, `$1${replacement}`);
-  const variable = new RegExp(`(\\b(?:const|let|var)\\s+)${name}(\\s*=)`);
-  return body.replace(variable, `$1${replacement}$2`);
+const entryKinds = {
+  entrypoint: "entry",
+  post_entrypoint: "post",
+  postEntrypoint: "post",
 };
+
+// Only top-level bindings count as entrypoints, so commented-out code and
+// nested helpers that happen to share the name are ignored.
+const topLevelEntries = (ast, file) => {
+  const ids = [];
+  for (const node of ast.body) {
+    if (node.type === "FunctionDeclaration") ids.push(node.id);
+    else if (node.type === "VariableDeclaration") {
+      for (const declarator of node.declarations) {
+        if (declarator.id.type === "Identifier") ids.push(declarator.id);
+      }
+    }
+  }
+
+  const entries = { entry: undefined, post: undefined };
+  for (const id of ids) {
+    const kind = entryKinds[id.name];
+    if (!kind) continue;
+    if (entries[kind]) {
+      throw new Error(
+        `${path.relative(repoRoot, file)}: duplicate ${kind} entrypoint \`${id.name}\``,
+      );
+    }
+    entries[kind] = id;
+  }
+  return entries;
+};
+
+// Rename only the declaring identifier, splicing from the end so earlier
+// offsets stay valid.
+const renameIdentifiers = (body, renames) =>
+  renames
+    .sort((a, b) => b.id.start - a.id.start)
+    .reduce(
+      (text, { id, name }) => text.slice(0, id.start) + name + text.slice(id.end),
+      body,
+    );
 
 const preparePart = (file, coreDir) => {
   const raw = sourceBody(file);
+  const ast = parseSource(raw, file);
   const identifier = identifierFor(file);
   const entryName = `${identifier}_entrypoint`;
   const postName = `${identifier}_post_entrypoint`;
-  const hasEntrypoint =
-    /\b(?:async\s+)?function\s+entrypoint\b/.test(raw) ||
-    /\b(?:const|let|var)\s+entrypoint\s*=/.test(raw);
-  const hasPostEntrypoint =
-    /\b(?:async\s+)?function\s+(?:post_entrypoint|postEntrypoint)\b/.test(raw) ||
-    /\b(?:const|let|var)\s+(?:post_entrypoint|postEntrypoint)\s*=/.test(raw);
+  const entries = topLevelEntries(ast, file);
 
-  let body = raw;
-  if (hasEntrypoint) body = renameFunction(body, "entrypoint", entryName);
-  if (hasPostEntrypoint) {
-    body = renameFunction(body, "post_entrypoint", postName);
-    body = renameFunction(body, "postEntrypoint", postName);
-  }
+  const renames = [];
+  if (entries.entry) renames.push({ id: entries.entry, name: entryName });
+  if (entries.post) renames.push({ id: entries.post, name: postName });
+  const body = renameIdentifiers(raw, renames);
 
   return {
     file,
     relative: path.relative(coreDir, file),
     body: body.trimEnd(),
-    hasEntrypoint,
-    hasPostEntrypoint,
+    hasEntrypoint: !!entries.entry,
+    hasPostEntrypoint: !!entries.post,
     entryName,
     postName,
-    libs: libReferences(raw),
+    libs: libReferences(ast),
   };
 };
 

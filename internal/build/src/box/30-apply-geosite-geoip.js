@@ -1,4 +1,6 @@
-const entrypoint = ({ proxies = [], config = {}, context, lib, constant = {}, ...rest }) => {
+const entrypoint = (args) => {
+  const { proxies, config, context, lib, constant } = args;
+
   const directIP = new Set();
   const directSite = new Set();
   for (const proxy of proxies) {
@@ -37,5 +39,5 @@ const entrypoint = ({ proxies = [], config = {}, context, lib, constant = {}, ..
     }
   });
 
-  return { proxies, config, ...rest };
+  return { ...args, proxies, config };
 };

@@ -1,4 +1,6 @@
-const entrypoint = ({ config = {}, proxies = [], lib, constant = {}, context, ...rest }) => {
+const entrypoint = (args) => {
+  const { config, proxies, lib, constant, context } = args;
+
   const isDomain = (addr) => {
     if (!addr || addr.includes(":")) return false; // empty or IPv6
     const dots = addr.split(".");
@@ -61,7 +63,7 @@ const entrypoint = ({ config = {}, proxies = [], lib, constant = {}, context, ..
   }
 
   if (Object.keys(dnsServers).length === 0) {
-    return { config, proxies, ...rest };
+    return { ...args, config, proxies };
   }
 
   config.dns = config.dns ?? {};
@@ -70,5 +72,5 @@ const entrypoint = ({ config = {}, proxies = [], lib, constant = {}, context, ..
     ...Object.values(dnsServers),
   ];
 
-  return { config, proxies, ...rest };
+  return { ...args, config, proxies };
 };

@@ -1,4 +1,6 @@
-const entrypoint = ({ config = {}, experimental = {}, lib, constant = {}, context, ...rest }) => {
+const entrypoint = (args) => {
+  const { config, experimental, lib, constant, context } = args;
+
   // client subnet
   const getClientIP = () => {
     const req = $options?._req;
@@ -39,5 +41,5 @@ const entrypoint = ({ config = {}, experimental = {}, lib, constant = {}, contex
       .filter((server) => server.type === "local")
       .forEach((server) => (server.type = "dhcp"));
 
-  return { config, experimental, ...rest };
+  return { ...args, config };
 };
