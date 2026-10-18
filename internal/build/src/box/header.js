@@ -12,6 +12,24 @@ Object.assign(constant, {
   },
   network: {
     tailnetIPRanges: ["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
+    // Base exclude_address segments: private networks + other reserved ranges
+    baseExcludeAddress: [
+      // Private networks
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+      // Loopback & reserved
+      "127.0.0.0/8",
+      "169.254.0.0/16",
+      // Multicast
+      "224.0.0.0/4",
+      // Broadcast
+      "255.255.255.255/32",
+      // IPv6 private & reserved
+      "fc00::/7",
+      "fe80::/10",
+      "ff00::/8",
+    ],
   },
 });
 

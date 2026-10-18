@@ -11,6 +11,216 @@ const __constant = constant;
 
 const __context = typeof context === "undefined" ? {} : context;
 
+// lib: cidr
+(() => {
+// CIDR utilities: IPv4/IPv6 parsing and subtraction
+// Used for dynamic TUN route_exclude_address construction
+
+const ipv4ToInt = (ip) => {
+  const parts = ip.split('.');
+  return (
+    ((parseInt(parts[0], 10) & 0xff) << 24) |
+    ((parseInt(parts[1], 10) & 0xff) << 16) |
+    ((parseInt(parts[2], 10) & 0xff) << 8) |
+    (parseInt(parts[3], 10) & 0xff)
+  );
+};
+
+const intToIpv4 = (int32) => {
+  const u32 = int32 >>> 0;
+  return [
+    (u32 >>> 24) & 0xff,
+    (u32 >>> 16) & 0xff,
+    (u32 >>> 8) & 0xff,
+    u32 & 0xff,
+  ].join('.');
+};
+
+const ipv6ToBigInt = (ip) => {
+  let normalized = ip.toLowerCase();
+  if (normalized.includes('::')) {
+    const [left, right] = normalized.split('::');
+    const leftGroups = left ? left.split(':') : [];
+    const rightGroups = right ? right.split(':') : [];
+    const missing = 8 - leftGroups.length - rightGroups.length;
+    const groups = [...leftGroups, ...Array(Math.max(0, missing)).fill('0'), ...rightGroups];
+    normalized = groups.join(':');
+  }
+  const groups = normalized.split(':').slice(0, 8);
+  let result = 0n;
+  for (const group of groups) {
+    result = (result << 16n) | BigInt(parseInt(group || '0', 16));
+  }
+  return result;
+};
+
+const bigIntToIpv6 = (bi) => {
+  const groups = [];
+  let val = bi;
+  for (let i = 0; i < 8; i++) {
+    groups.unshift((val & 0xffffn).toString(16));
+    val = val >> 16n;
+  }
+  return groups.join(':');
+};
+
+const parseCIDR = (cidr) => {
+  const [addrStr, bitsStr] = cidr.split('/');
+  const bits = parseInt(bitsStr, 10);
+  if (addrStr.includes(':')) {
+    return {
+      addr: ipv6ToBigInt(addrStr),
+      bits,
+      version: 6,
+      addrStr,
+    };
+  } else {
+    return {
+      addr: ipv4ToInt(addrStr),
+      bits,
+      version: 4,
+      addrStr,
+    };
+  }
+};
+
+const cidrOverlapIPv4 = (cidr1, cidr2) => {
+  const mask1 = (0xffffffff << (32 - cidr1.bits)) >>> 0;
+  const mask2 = (0xffffffff << (32 - cidr2.bits)) >>> 0;
+  return ((cidr1.addr >>> 0) & mask1) === ((cidr2.addr >>> 0) & mask2);
+};
+
+const addressInCIDRIPv4 = (cidr, target) => {
+  const mask = (0xffffffff << (32 - cidr.bits)) >>> 0;
+  return ((cidr.addr >>> 0) & mask) === ((target.addr >>> 0) & mask);
+};
+
+const subtractSingleCIDRIPv4 = (range, exclude) => {
+  if (!cidrOverlapIPv4(range, exclude)) {
+    return [range];
+  }
+  if (exclude.bits <= range.bits && addressInCIDRIPv4(exclude, range)) {
+    return [];
+  }
+  if (!addressInCIDRIPv4(range, exclude)) {
+    return [range];
+  }
+  const newBits = range.bits + 1;
+  if (newBits > 32) return [range];
+  const half1 = {
+    addr: range.addr,
+    bits: newBits,
+    version: 4,
+    addrStr: range.addrStr,
+  };
+  const half2Addr = (range.addr >>> 0) | (1 << (32 - newBits));
+  const half2 = {
+    addr: half2Addr,
+    bits: newBits,
+    version: 4,
+    addrStr: intToIpv4(half2Addr),
+  };
+  const result = [];
+  result.push(...subtractSingleCIDRIPv4(half1, exclude));
+  result.push(...subtractSingleCIDRIPv4(half2, exclude));
+  return result;
+};
+
+const subtractCIDRsIPv4 = (ranges, excludes) => {
+  let result = ranges.map((r) => parseCIDR(r));
+  for (const exclude of excludes) {
+    const excludeParsed = parseCIDR(exclude);
+    const newResult = [];
+    for (const range of result) {
+      const subtracted = subtractSingleCIDRIPv4(range, excludeParsed);
+      newResult.push(...subtracted);
+    }
+    result = newResult;
+  }
+  return result.map((r) => `${r.addrStr}/${r.bits}`);
+};
+
+const cidrOverlapIPv6 = (cidr1, cidr2) => {
+  const maskBits1 = 128n - BigInt(cidr1.bits);
+  const maskBits2 = 128n - BigInt(cidr2.bits);
+  const mask1 = (1n << maskBits1) - 1n;
+  const mask2 = (1n << maskBits2) - 1n;
+  return (cidr1.addr & ~mask1) === (cidr2.addr & ~mask2);
+};
+
+const addressInCIDRIPv6 = (cidr, target) => {
+  const maskBits = 128n - BigInt(cidr.bits);
+  const mask = (1n << maskBits) - 1n;
+  return (cidr.addr & ~mask) === (target.addr & ~mask);
+};
+
+const subtractSingleCIDRIPv6 = (range, exclude) => {
+  if (!cidrOverlapIPv6(range, exclude)) {
+    return [range];
+  }
+  if (exclude.bits <= range.bits && addressInCIDRIPv6(exclude, range)) {
+    return [];
+  }
+  if (!addressInCIDRIPv6(range, exclude)) {
+    return [range];
+  }
+  const newBits = range.bits + 1;
+  if (newBits > 128) return [range];
+  const half1 = {
+    addr: range.addr,
+    bits: newBits,
+    version: 6,
+    addrStr: range.addrStr,
+  };
+  const half2Addr = range.addr | (1n << BigInt(128 - newBits));
+  const half2 = {
+    addr: half2Addr,
+    bits: newBits,
+    version: 6,
+    addrStr: bigIntToIpv6(half2Addr),
+  };
+  const result = [];
+  result.push(...subtractSingleCIDRIPv6(half1, exclude));
+  result.push(...subtractSingleCIDRIPv6(half2, exclude));
+  return result;
+};
+
+const subtractCIDRsIPv6 = (ranges, excludes) => {
+  let result = ranges.map((r) => parseCIDR(r));
+  for (const exclude of excludes) {
+    const excludeParsed = parseCIDR(exclude);
+    const newResult = [];
+    for (const range of result) {
+      const subtracted = subtractSingleCIDRIPv6(range, excludeParsed);
+      newResult.push(...subtracted);
+    }
+    result = newResult;
+  }
+  return result.map((r) => `${r.addrStr}/${r.bits}`);
+};
+
+const subtractCIDRs = (ranges, excludes) => {
+  if (!ranges || ranges.length === 0) return [];
+  if (!excludes || excludes.length === 0) return ranges;
+  const v4Ranges = ranges.filter((r) => !r.includes(':'));
+  const v6Ranges = ranges.filter((r) => r.includes(':'));
+  const v4Excludes = excludes.filter((r) => !r.includes(':'));
+  const v6Excludes = excludes.filter((r) => r.includes(':'));
+  const result = [];
+  if (v4Ranges.length > 0) {
+    result.push(...subtractCIDRsIPv4(v4Ranges, v4Excludes));
+  }
+  if (v6Ranges.length > 0) {
+    result.push(...subtractCIDRsIPv6(v6Ranges, v6Excludes));
+  }
+  return result;
+};
+
+lib.cidr = {
+  subtractCIDRs,
+};
+})();
+
 // lib: location
 (() => {
 const locationEntries = [
@@ -1410,98 +1620,155 @@ const _50_apply_internal_dns_resolver_js_entrypoint = (args) => {
 };
 
 const _60_apply_endpoints_js_entrypoint = (args) => {
-  const { config, endpoints, lib, constant, context } = args;
+  const { config, endpoints } = args;
 
-  // endpoint id generated by:
-  // $ openssl rand -hex 16
+  // Parse endpoint IDs from request query
   const endpointIDs = ($options?._req?.query?.endpoint ?? "")
     .split("_")
     .filter((t) => !!t);
 
-  const availableEndpoints = (endpoints ?? []).filter((ep) =>
-    (endpointIDs ?? []).some((eid) => ep.properties?.endpoint?.id == eid),
+  const selectedEndpoints = (endpoints ?? []).filter((ep) =>
+    endpointIDs.some((eid) => ep.properties?.endpoint?.id == eid),
   );
 
-  if (availableEndpoints.length == 0) {
-    // no endpoint available , so exclude tailnet ip range to tun configure.
-    const tunInbound = lib.default.findTun(config);
-    if (tunInbound && (tunInbound.route_exclude_address ?? []).length > 0)
-      tunInbound.route_exclude_address = [
-        ...(tunInbound.route_exclude_address ?? []),
-        ...constant.network.tailnetIPRanges,
-      ];
+  // Categorize endpoints by type
+  const tailscaleEndpoints = selectedEndpoints.filter(
+    (ep) => ep.type === "tailscale",
+  );
+  const wireguardEndpoints = selectedEndpoints.filter(
+    (ep) => ep.type === "wireguard",
+  );
 
-    return { ...args, config, endpoints: [] };
+  // Apply route & DNS rules for each endpoint type
+  for (const tsep of tailscaleEndpoints) {
+    config.route = {
+      ...(config.route ?? {}),
+      rules: [
+        {
+          action: "route",
+          outbound: tsep.name,
+          preferred_by: tsep.name,
+        },
+        ...(config.route?.rules ?? []),
+      ],
+    };
+
+    config.dns = {
+      ...(config.dns ?? {}),
+      servers: [
+        ...(config.dns?.servers ?? []),
+        {
+          type: "tailscale",
+          tag: "dns-" + tsep.name,
+          endpoint: tsep.name,
+          accept_search_domain: true,
+        },
+      ],
+      rules: [
+        {
+          action: "evaluate",
+          preferred_by: "dns-" + tsep.name,
+          server: "dns-" + tsep.name,
+          tag: "resolve-evaluate-tailscale-" + tsep.name,
+        },
+        {
+          match_response: "resolve-evaluate-tailscale-" + tsep.name,
+          ip_accept_any: true,
+          action: "respond",
+        },
+        ...(config.dns?.rules ?? []),
+      ],
+    };
   }
 
-  // tailscale endpoints
-  const tailscaleEndpoints = availableEndpoints
-    .filter((ep) => ep.type === "tailscale")
-    .map((tsep) => {
-      config.route = {
-        ...(config.route ?? {}),
-        rules: [
-          {
-            action: "route",
-            outbound: tsep.name,
-            preferred_by: tsep.name,
-          },
-          ...(config.route?.rules ?? []),
-        ],
-      };
-      config.dns = {
-        ...(config.dns ?? {}),
-        servers: [
-          ...(config.dns?.servers ?? []),
-          {
-            type: "tailscale",
-            tag: "dns-" + tsep.name,
-            endpoint: tsep.name,
-            accept_search_domain: true,
-          },
-        ],
-        rules: [
-          {
-            action: "evaluate",
-            preferred_by: "dns-" + tsep.name,
-            server: "dns-" + tsep.name,
-            tag: "resolve-evaluate-tailscale-" + tsep.name,
-          },
-          {
-            match_response: "resolve-evaluate-tailscale-" + tsep.name,
-            ip_accept_any: true,
-            action: "respond",
-          },
-          ...(config.dns?.rules ?? []),
-        ],
-      };
-      return tsep;
-    });
-
-  // wireguard endpoints
-  const wireguardEndpoints = availableEndpoints
-    .filter((ep) => ep.type === "wireguard")
-    .map((wgep) => {
-      config.route = {
-        ...(config.route ?? {}),
-        rules: [
-          {
-            action: "route",
-            outbound: wgep.name,
-            preferred_by: wgep.name,
-          },
-          ...(config.route?.rules ?? []),
-        ],
-      };
-      return wgep;
-    });
-
-  // openvpn-(client/server) , openconnect not supported
+  for (const wgep of wireguardEndpoints) {
+    config.route = {
+      ...(config.route ?? {}),
+      rules: [
+        {
+          action: "route",
+          outbound: wgep.name,
+          preferred_by: wgep.name,
+        },
+        ...(config.route?.rules ?? []),
+      ],
+    };
+  }
 
   return {
     ...args,
-    endpoints: [...(tailscaleEndpoints ?? []), ...(wireguardEndpoints ?? [])],
+    selectedEndpoints: [...tailscaleEndpoints, ...wireguardEndpoints],
   };
+};
+
+const _65_apply_exclude_address_js_entrypoint = (args) => {
+  const { config, selectedEndpoints, lib, constant } = args;
+
+  const tunInbound = lib.default.findTun(config);
+  if (!tunInbound) {
+    return args;
+  }
+
+  // Start with base exclude address
+  let excludeAddress = [...(constant.network.baseExcludeAddress ?? [])];
+
+  // If no endpoint selected, ensure tailnet ranges are excluded
+  if (!selectedEndpoints || selectedEndpoints.length === 0) {
+    excludeAddress.push(...constant.network.tailnetIPRanges);
+    tunInbound.route_exclude_address = excludeAddress;
+    return args;
+  }
+
+  // Collect CIDR ranges to NOT exclude based on selected endpoints
+  const toNotExclude = [];
+
+  for (const ep of selectedEndpoints) {
+    if (ep.type === "tailscale") {
+      // Tailscale needs its IP ranges to be routable through TUN
+      // So we remove them from exclude list
+      toNotExclude.push(...constant.network.tailnetIPRanges);
+    } else if (ep.type === "wireguard") {
+      // Collect all AllowedIPs from WireGuard peers
+      if (ep.peers && Array.isArray(ep.peers)) {
+        for (const peer of ep.peers) {
+          const allowedIps = peer.allowed_ips || peer["allowed-ips"];
+          if (allowedIps && Array.isArray(allowedIps)) {
+            for (const ip of allowedIps) {
+              // Skip default routes to avoid breaking the whole system
+              if (ip === "0.0.0.0/0" || ip === "::/0") {
+                continue;
+              }
+
+              // Skip if prefix is too short (e.g., /1, /2) - they're too broad
+              const [, prefixStr] = ip.split("/");
+              const prefix = parseInt(prefixStr, 10);
+              const isIPv6 = ip.includes(":");
+
+              if (isIPv6 && prefix < 8) {
+                continue; // IPv6 /8 or shorter is too broad
+              }
+              if (!isIPv6 && prefix < 8) {
+                continue; // IPv4 /8 or shorter is too broad
+              }
+
+              toNotExclude.push(ip);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // If there are ranges to not exclude, subtract them from exclude list
+  if (toNotExclude.length > 0) {
+    excludeAddress = lib.cidr.subtractCIDRs(
+      excludeAddress,
+      toNotExclude,
+    );
+  }
+
+  tunInbound.route_exclude_address = excludeAddress;
+  return args;
 };
 
 const _70_apply_sync_domain_resolver_js_entrypoint = (args) => {
@@ -1873,6 +2140,24 @@ Object.assign(constant, {
   },
   network: {
     tailnetIPRanges: ["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
+    // Base exclude_address segments: private networks + other reserved ranges
+    baseExcludeAddress: [
+      // Private networks
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+      // Loopback & reserved
+      "127.0.0.0/8",
+      "169.254.0.0/16",
+      // Multicast
+      "224.0.0.0/4",
+      // Broadcast
+      "255.255.255.255/32",
+      // IPv6 private & reserved
+      "fc00::/7",
+      "fe80::/10",
+      "ff00::/8",
+    ],
   },
 });
 
@@ -2032,6 +2317,7 @@ await _entry_js_entrypoint({ ...({} || {}), lib: __lib, constant: __constant, co
   .then((value) => _40_apply_push_group_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _50_apply_internal_dns_resolver_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _60_apply_endpoints_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
+  .then((value) => _65_apply_exclude_address_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _70_apply_sync_domain_resolver_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _71_apply_bootstrap_direct_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _72_apply_dns_enhanced_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
