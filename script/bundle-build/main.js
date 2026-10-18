@@ -32,13 +32,6 @@ const listJs = (dir) =>
     })
     .sort((a, b) => a.localeCompare(b));
 
-const loadOrder = () =>
-  fs
-    .readFileSync(path.join(featuresDir, "load-order"), "utf8")
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith("#"));
-
 const featureFile = (name) => path.join(featuresDir, name, "load.js");
 
 const sourceBody = (file) => fs.readFileSync(file, "utf8").replace(/^#!.*\n/, "");
@@ -77,25 +70,33 @@ const libReferences = (ast) => {
   return names;
 };
 
-const resolveFeatures = (rootReferences, order) => {
-  const needed = new Set();
-  const queue = [...rootReferences].filter((name) => name !== "default");
-  while (queue.length) {
-    const name = queue.shift();
-    if (needed.has(name)) continue;
-    if (!order.includes(name)) {
-      throw new Error(`lib.${name} is not listed in features/load-order`);
+// Resolve the features referenced through `lib.<name>` and return them in
+// dependency order (dependencies first), since a feature may read another
+// one at load time.
+const resolveFeatures = (rootReferences) => {
+  const ordered = [];
+  const state = new Map(); // name -> "visiting" | "done"
+  const visit = (name, chain) => {
+    if (state.get(name) === "done") return;
+    if (state.get(name) === "visiting") {
+      throw new Error(`circular lib dependency: ${[...chain, name].join(" -> ")}`);
     }
     const file = featureFile(name);
     if (!fs.existsSync(file)) {
       throw new Error(`lib.${name} not found at ${file}`);
     }
-    needed.add(name);
-    for (const dependency of libReferences(parseSource(sourceBody(file), file))) {
-      if (dependency !== "default" && dependency !== name) queue.push(dependency);
-    }
+    state.set(name, "visiting");
+    const dependencies = [...libReferences(parseSource(sourceBody(file), file))]
+      .filter((dependency) => dependency !== "default" && dependency !== name)
+      .sort();
+    for (const dependency of dependencies) visit(dependency, [...chain, name]);
+    state.set(name, "done");
+    ordered.push(name);
+  };
+  for (const name of [...rootReferences].filter((name) => name !== "default").sort()) {
+    visit(name, []);
   }
-  return needed;
+  return ordered;
 };
 
 const identifierFor = (file) => {
@@ -181,18 +182,14 @@ const assemble = (core) => {
   if (!files.length) throw new Error(`no source files found under ${dir}`);
 
   const parts = files.map((file) => preparePart(file, dir));
-  const order = loadOrder();
   const rootReferences = new Set();
   for (const part of parts) {
     for (const name of part.libs) rootReferences.add(name);
   }
-  const needed = resolveFeatures(rootReferences, order);
-  const featureBlocks = order
-    .filter((name) => needed.has(name))
-    .map((name) => {
-      const body = sourceBody(featureFile(name)).trimEnd();
-      return `// lib: ${name}\n(() => {\n${body}\n})();`;
-    });
+  const featureBlocks = resolveFeatures(rootReferences).map((name) => {
+    const body = sourceBody(featureFile(name)).trimEnd();
+    return `// lib: ${name}\n(() => {\n${body}\n})();`;
+  });
 
   // entry.js is the global main function and seeds the chain. Other
   // entrypoints follow file order. Post entrypoints are a stack: a post

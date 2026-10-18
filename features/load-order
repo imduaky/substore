@@ -1,5 +1,0 @@
-# Feature load order (dependencies first).
-# Consumed by script/bundle-build to inline libraries into buildbox.
-cidr
-location
-transport
