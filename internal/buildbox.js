@@ -1820,7 +1820,7 @@ const _73_apply_platform_settings_js_entrypoint = (args) => {
       );
 
     // on macos , gvisor has better performance.
-    //tunInbound.stack = "gvisor";
+    tunInbound.stack = "gvisor";
 
     if (tunInbound.platform?.http_proxy?.enabled)
       tunInbound.platform.http_proxy.enabled = false;

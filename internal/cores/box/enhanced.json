@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/SagerNet/sing-box/v1.14.0/docs/schema.json",
+  "$schema": "https://raw.githubusercontent.com/SagerNet/sing-box/v1.14.4/docs/schema.json",
   "log": {
     "disabled": false,
     "level": "warn"
@@ -834,6 +834,7 @@
       ],
       "auto_route": true,
       "dns_mode": "hijack",
+      "stack": "mixed",
       "dns_address": [
         "172.27.0.2",
         "fdfe:dcba:9876::2"
