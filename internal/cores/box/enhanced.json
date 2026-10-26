@@ -667,7 +667,10 @@
             "domain_suffix": [
               "dns.weixin.qq.com",
               "api.installer.xiaomi.com",
-              "userlocations.googleapis.com"
+              "userlocations.googleapis.com",
+              "locationhistory-pa.googleapis.com",
+              "locationhistoryaggregates-pa.googleapis.com",
+              "locationhistoryplacedetails-pa.googleapis.com"
             ]
           }
         ]
