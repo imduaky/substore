@@ -1,11 +1,11 @@
 const featureLocation = lib.location;
 
 const isTransport = ({ proxy }) => {
-  return proxy?.properties?.transport || proxy?.properties?.transport?.is;
+  return proxy?.props?.transport || proxy?.props?.transport?.is;
 };
 
 const isDestionation = ({ proxy }) => {
-  return proxy?.properties?.destination || proxy?.properties?.destination?.is;
+  return proxy?.props?.destination || proxy?.props?.destination?.is;
 };
 
 const completeTransport = ({ proxies, detourName, fallback }) => {
@@ -48,22 +48,22 @@ const completeTransport = ({ proxies, detourName, fallback }) => {
   for (const dp of destinationProxies) {
     const destinationRequiredLocation = [];
     if (
-      typeof dp.properties.destination !== "boolean" &&
-      dp.properties.destination.require !== undefined
+      typeof dp.props.destination !== "boolean" &&
+      dp.props.destination.require !== undefined
     ) {
-      if (typeof dp.properties.destination.requires === "string")
-        destinationRequiredLocation.push(dp.properties.destination.require);
-      else if (Array.isArray(dp.properties.destination.require))
-        destinationRequiredLocation.push(...dp.properties.destination.require);
+      if (typeof dp.props.destination.requires === "string")
+        destinationRequiredLocation.push(dp.props.destination.require);
+      else if (Array.isArray(dp.props.destination.require))
+        destinationRequiredLocation.push(...dp.props.destination.require);
     } else {
       const destinationLocation = featureLocation.getLocation(dp);
       if (destinationLocation !== "")
         destinationRequiredLocation.push(destinationLocation);
 
-      if (typeof dp.properties.destination.suits === "string")
-        destinationRequiredLocation.push(dp.properties.destination.suits);
-      else if (Array.isArray(dp.properties.destination.suits))
-        destinationRequiredLocation.push(...dp.properties.destination.suits);
+      if (typeof dp.props.destination.suits === "string")
+        destinationRequiredLocation.push(dp.props.destination.suits);
+      else if (Array.isArray(dp.props.destination.suits))
+        destinationRequiredLocation.push(...dp.props.destination.suits);
       if (Array.isArray(fallback))
         destinationRequiredLocation.push(...fallback);
     }

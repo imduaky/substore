@@ -1140,7 +1140,7 @@ const getFull = (proxy) => {
   if (!proxy) {
     return { cca2: "", flag: "", keywords: [], area: "", order: -1 };
   }
-  const accurateLocation = proxy.properties?.location ?? "";
+  const accurateLocation = proxy.props?.location ?? "";
   const proxyName = proxy.name.toLowerCase();
   for (let i = 0; i < locationEntries.length; i++) {
     const entry = locationEntries[i];
@@ -1182,11 +1182,8 @@ const sortProxies = ({ proxies }) => {
   // rename and merge proxies
   for (const proxy of proxies) {
     let providerName = emptyProviderKey;
-    if (
-      proxy.properties !== undefined &&
-      proxy.properties.provider !== undefined
-    ) {
-      providerName = proxy.properties.provider;
+    if (proxy.props !== undefined && proxy.props.provider !== undefined) {
+      providerName = proxy.props.provider;
       proxy.name = [providerName, proxy.name].join("/");
     }
     proxy.name = proxy.name.trim();
@@ -1232,11 +1229,11 @@ lib.location = {
 const featureLocation = lib.location;
 
 const isTransport = ({ proxy }) => {
-  return proxy?.properties?.transport || proxy?.properties?.transport?.is;
+  return proxy?.props?.transport || proxy?.props?.transport?.is;
 };
 
 const isDestionation = ({ proxy }) => {
-  return proxy?.properties?.destination || proxy?.properties?.destination?.is;
+  return proxy?.props?.destination || proxy?.props?.destination?.is;
 };
 
 const completeTransport = ({ proxies, detourName, fallback }) => {
@@ -1279,22 +1276,22 @@ const completeTransport = ({ proxies, detourName, fallback }) => {
   for (const dp of destinationProxies) {
     const destinationRequiredLocation = [];
     if (
-      typeof dp.properties.destination !== "boolean" &&
-      dp.properties.destination.require !== undefined
+      typeof dp.props.destination !== "boolean" &&
+      dp.props.destination.require !== undefined
     ) {
-      if (typeof dp.properties.destination.requires === "string")
-        destinationRequiredLocation.push(dp.properties.destination.require);
-      else if (Array.isArray(dp.properties.destination.require))
-        destinationRequiredLocation.push(...dp.properties.destination.require);
+      if (typeof dp.props.destination.requires === "string")
+        destinationRequiredLocation.push(dp.props.destination.require);
+      else if (Array.isArray(dp.props.destination.require))
+        destinationRequiredLocation.push(...dp.props.destination.require);
     } else {
       const destinationLocation = featureLocation.getLocation(dp);
       if (destinationLocation !== "")
         destinationRequiredLocation.push(destinationLocation);
 
-      if (typeof dp.properties.destination.suits === "string")
-        destinationRequiredLocation.push(dp.properties.destination.suits);
-      else if (Array.isArray(dp.properties.destination.suits))
-        destinationRequiredLocation.push(...dp.properties.destination.suits);
+      if (typeof dp.props.destination.suits === "string")
+        destinationRequiredLocation.push(dp.props.destination.suits);
+      else if (Array.isArray(dp.props.destination.suits))
+        destinationRequiredLocation.push(...dp.props.destination.suits);
       if (Array.isArray(fallback))
         destinationRequiredLocation.push(...fallback);
     }
@@ -1330,6 +1327,18 @@ const _10_apply_sort_js_entrypoint = (args) => {
   return {
     ...args,
     proxies: sortedProxies.filter((sp) => names.includes(sp.name)),
+  };
+};
+
+const _19_ipstack_js_entrypoint = (args) => {
+  const { proxies, lib, constant, context } = args;
+
+  return {
+    ...args,
+    proxies: proxies.map((p) => {
+      if (p.props?.ipv4 === undefined && p.props?.ipv6 === undefined) {
+      }
+    }),
   };
 };
 
@@ -1420,8 +1429,7 @@ const _40_apply_push_group_js_entrypoint = (args) => {
   const { proxies, config, lib, constant, context } = args;
 
   const out = proxies.filter(
-    (proxy) =>
-      proxy?.properties?.hidden === undefined || !proxy.properties.hidden,
+    (proxy) => !proxy?.props?.hidden || !proxy?.props?.hiddenAll,
   );
   config.outbounds
     .filter((p) => ["selector", "urltest"].includes(p.type))
@@ -1480,10 +1488,10 @@ const _50_apply_internal_dns_resolver_js_entrypoint = (args) => {
     return !(dots.length === 4 && Number.isInteger(Number(dots[3])));
   };
 
-  // normalize proxy.properties.dns (string shorthand or object) into a
+  // normalize proxy.props.dns (string shorthand or object) into a
   // sing-box dns server object with a deterministic, dedupe-friendly tag.
   const buildSingDns = (proxy) => {
-    const dns = proxy.properties.dns;
+    const dns = proxy.props.dns;
     const props = { type: "", server: "", path: "", port: 0 };
     if (typeof dns === "string") {
       props.type = "udp";
@@ -1496,8 +1504,7 @@ const _50_apply_internal_dns_resolver_js_entrypoint = (args) => {
     }
 
     let tag;
-    if (proxy.properties?.provider)
-      tag = "dns-for_provider_" + proxy.properties.provider;
+    if (proxy.props?.provider) tag = "dns-for_provider_" + proxy.props.provider;
     else
       tag =
         "dns-" +
@@ -1527,7 +1534,7 @@ const _50_apply_internal_dns_resolver_js_entrypoint = (args) => {
   const dnsServers = {};
 
   for (const proxy of proxies) {
-    if (!proxy.properties?.dns) continue;
+    if (!proxy.props?.dns) continue;
 
     const singDns = buildSingDns(proxy);
     dnsServers[singDns.tag] = singDns;
@@ -1557,7 +1564,7 @@ const _60_apply_endpoints_js_entrypoint = (args) => {
     .filter((t) => !!t);
 
   const availableEndpoints = (endpoints ?? []).filter((ep) =>
-    (endpointIDs ?? []).some((eid) => ep.properties?.endpoint?.id == eid),
+    (endpointIDs ?? []).some((eid) => ep.props?.endpoint?.id == eid),
   );
 
   if (availableEndpoints.length == 0) {
@@ -2186,6 +2193,7 @@ lib.default = {
 
 await _entry_js_entrypoint({ ...({} || {}), lib: __lib, constant: __constant, context: __context })
   .then((value) => _10_apply_sort_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
+  .then((value) => _19_ipstack_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _20_apply_transport_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _30_apply_geosite_geoip_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _40_apply_push_group_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))

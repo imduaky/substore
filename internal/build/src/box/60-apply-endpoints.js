@@ -8,7 +8,7 @@ const entrypoint = (args) => {
     .filter((t) => !!t);
 
   const availableEndpoints = (endpoints ?? []).filter((ep) =>
-    (endpointIDs ?? []).some((eid) => ep.properties?.endpoint?.id == eid),
+    (endpointIDs ?? []).some((eid) => ep.props?.endpoint?.id == eid),
   );
 
   if (availableEndpoints.length == 0) {

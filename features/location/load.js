@@ -987,7 +987,7 @@ const getFull = (proxy) => {
   if (!proxy) {
     return { cca2: "", flag: "", keywords: [], area: "", order: -1 };
   }
-  const accurateLocation = proxy.properties?.location ?? "";
+  const accurateLocation = proxy.props?.location ?? "";
   const proxyName = proxy.name.toLowerCase();
   for (let i = 0; i < locationEntries.length; i++) {
     const entry = locationEntries[i];
@@ -1029,11 +1029,8 @@ const sortProxies = ({ proxies }) => {
   // rename and merge proxies
   for (const proxy of proxies) {
     let providerName = emptyProviderKey;
-    if (
-      proxy.properties !== undefined &&
-      proxy.properties.provider !== undefined
-    ) {
-      providerName = proxy.properties.provider;
+    if (proxy.props !== undefined && proxy.props.provider !== undefined) {
+      providerName = proxy.props.provider;
       proxy.name = [providerName, proxy.name].join("/");
     }
     proxy.name = proxy.name.trim();

@@ -8,10 +8,10 @@ const entrypoint = (args) => {
     return !(dots.length === 4 && Number.isInteger(Number(dots[3])));
   };
 
-  // normalize proxy.properties.dns (string shorthand or object) into a
+  // normalize proxy.props.dns (string shorthand or object) into a
   // sing-box dns server object with a deterministic, dedupe-friendly tag.
   const buildSingDns = (proxy) => {
-    const dns = proxy.properties.dns;
+    const dns = proxy.props.dns;
     const props = { type: "", server: "", path: "", port: 0 };
     if (typeof dns === "string") {
       props.type = "udp";
@@ -24,8 +24,7 @@ const entrypoint = (args) => {
     }
 
     let tag;
-    if (proxy.properties?.provider)
-      tag = "dns-for_provider_" + proxy.properties.provider;
+    if (proxy.props?.provider) tag = "dns-for_provider_" + proxy.props.provider;
     else
       tag =
         "dns-" +
@@ -55,7 +54,7 @@ const entrypoint = (args) => {
   const dnsServers = {};
 
   for (const proxy of proxies) {
-    if (!proxy.properties?.dns) continue;
+    if (!proxy.props?.dns) continue;
 
     const singDns = buildSingDns(proxy);
     dnsServers[singDns.tag] = singDns;

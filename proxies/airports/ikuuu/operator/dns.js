@@ -16,8 +16,8 @@ const operator = (proxies, targetPlatform, context) => {
     if (dnsServer) {
       return {
         ...proxy,
-        properties: {
-          ...(proxy.properties ?? {}),
+        props: {
+          ...(proxy.props ?? {}),
           dns: dnsServer,
         },
       };

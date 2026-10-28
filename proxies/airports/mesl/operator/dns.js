@@ -14,8 +14,8 @@ const operator = (proxies, targetPlatform, context) => {
 
   return proxies.map((p) => ({
     ...(p ?? {}),
-    properties: {
-      ...(p.properties ?? {}),
+    props: {
+      ...(p.props ?? {}),
       dns: dnsServerObject,
     },
   }));
