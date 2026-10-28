@@ -31,12 +31,6 @@
         "detour": "🙋 Select"
       },
       {
-        "tag": "dns-download",
-        "type": "https",
-        "server": "1.1.1.1",
-        "detour": "📥 Download"
-      },
-      {
         "tag": "dns-ecs",
         "type": "https",
         "server": "8.8.8.8",
@@ -161,22 +155,16 @@
         "server": "dns-cn"
       },
       {
-        "rule_set": [
-          "@geosite-download",
-          "geosite-category-game-platforms-download",
-          "geosite-category-android-app-download",
-          "geosite-curseforge"
-        ],
-        "action": "route",
-        "server": "dns-download"
-      },
-      {
         "query_type": [
           "A",
           "AAAA"
         ],
         "rule_set": [
-          "geosite-geolocation-!cn"
+          "geosite-geolocation-!cn",
+          "@geosite-download",
+          "geosite-category-game-platforms-download",
+          "geosite-category-android-app-download",
+          "geosite-curseforge"
         ],
         "action": "route",
         "rewrite_ttl": 1,
