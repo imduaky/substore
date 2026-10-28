@@ -61,6 +61,12 @@
         "detour": "📦 Microsoft"
       },
       {
+        "tag": "dns-download",
+        "type": "https",
+        "server": "1.1.1.1",
+        "detour": "📥 Download"
+      },
+      {
         "tag": "dns-europe",
         "type": "https",
         "server": "1.1.1.1",
@@ -206,6 +212,16 @@
       {
         "rule_set": "geosite-cn",
         "server": "dns-local"
+      },
+      {
+        "rule_set": [
+          "@geosite-download",
+          "geosite-category-game-platforms-download",
+          "geosite-category-android-app-download",
+          "geosite-curseforge"
+        ],
+        "action": "route",
+        "server": "dns-download"
       },
       {
         "rule_set": ["geosite-geolocation-!cn"],
@@ -412,6 +428,16 @@
           "@geosite-cloudflare-challenge"
         ],
         "outbound": "🎬 Entertainment"
+      },
+      {
+        "rule_set": [
+          "@geosite-download",
+          "geosite-category-game-platforms-download",
+          "geosite-category-android-app-download",
+          "geosite-curseforge"
+        ],
+        "action": "route",
+        "outbound": "📥 Download"
       }
     ],
     "rule_set": [
@@ -528,6 +554,13 @@
     {
       "type": "selector",
       "tag": "📦 Microsoft",
+      "outbounds": ["🙋 Select"],
+      "default": "🙋 Select",
+      "interrupt_exist_connections": true
+    },
+    {
+      "type": "selector",
+      "tag": "📥 Download",
       "outbounds": ["🙋 Select"],
       "default": "🙋 Select",
       "interrupt_exist_connections": true

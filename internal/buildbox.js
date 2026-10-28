@@ -1447,6 +1447,7 @@ const _40_apply_push_group_js_entrypoint = (args) => {
           "🔍 Google",
           "🐈 Git",
           "📦 Microsoft",
+          "📥 Download",
           "🎬 Entertainment",
           "📺 Youtube",
           "🤖 AI-Service",
