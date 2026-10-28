@@ -88,6 +88,11 @@
         "action": "reject"
       },
       {
+        "clash_mode": "IPv6Only",
+        "query_type": "A",
+        "action": "reject"
+      },
+      {
         "query_type": ["HTTPS", "SVCB"],
         "action": "reject"
       },
@@ -256,6 +261,11 @@
       {
         "clash_mode": "IPv4Only",
         "ip_version": 6,
+        "action": "reject"
+      },
+      {
+        "clash_mode": "IPv6Only",
+        "ip_version": 4,
         "action": "reject"
       },
       {
@@ -442,86 +452,90 @@
       "domain_resolver": "dns-cn"
     },
     {
+      "type": "block",
+      "tag": "block"
+    },
+    {
       "type": "selector",
       "tag": "🙋 Select",
-      "outbounds": ["direct"],
+      "outbounds": ["direct", "block"],
       "default": "direct",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "🔍 Google",
-      "outbounds": ["🙋 Select"],
+      "outbounds": ["direct", "block", "🙋 Select"],
       "default": "🙋 Select",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "🍎 Apple",
-      "outbounds": ["🙋 Select"],
+      "outbounds": ["direct", "block", "🙋 Select"],
       "default": "🙋 Select",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "📦 Microsoft",
-      "outbounds": ["🙋 Select"],
+      "outbounds": ["direct", "block", "🙋 Select"],
       "default": "🙋 Select",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "📥 Download",
-      "outbounds": ["🙋 Select"],
+      "outbounds": ["direct", "block", "🙋 Select"],
       "default": "🙋 Select",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "🐈 Git",
-      "outbounds": ["📦 Microsoft"],
+      "outbounds": ["direct", "block", "📦 Microsoft", "🙋 Select"],
       "default": "📦 Microsoft",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "🤖 AI-Service",
-      "outbounds": ["🙋 Select"],
+      "outbounds": ["direct", "block", "🙋 Select"],
       "default": "🙋 Select",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "📺 Youtube",
-      "outbounds": ["🔍 Google"],
+      "outbounds": ["direct", "block", "🔍 Google", "🙋 Select"],
       "default": "🔍 Google",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "🎬 Entertainment",
-      "outbounds": ["🙋 Select"],
+      "outbounds": ["direct", "block", "🙋 Select"],
       "default": "🙋 Select",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "✈️ TelegramDC5(AP)",
-      "outbounds": ["🙋 Select"],
+      "outbounds": ["direct", "block", "🙋 Select"],
       "default": "🙋 Select",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "✈️ TelegramDC1(NA)",
-      "outbounds": ["✈️ TelegramDC5(AP)", "🙋 Select"],
+      "outbounds": ["direct", "block", "✈️ TelegramDC5(AP)", "🙋 Select"],
       "default": "✈️ TelegramDC5(AP)",
       "interrupt_exist_connections": true
     },
     {
       "type": "selector",
       "tag": "✈️ TelegramDC4(EU)",
-      "outbounds": ["✈️ TelegramDC5(AP)", "🙋 Select"],
+      "outbounds": ["direct", "block", "✈️ TelegramDC5(AP)", "🙋 Select"],
       "default": "✈️ TelegramDC5(AP)",
       "interrupt_exist_connections": true
     }

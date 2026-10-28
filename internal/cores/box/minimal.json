@@ -469,10 +469,15 @@
       "domain_resolver": "dns-cn"
     },
     {
+      "type": "block",
+      "tag": "block"
+    },
+    {
       "type": "selector",
       "tag": "🙋 Select",
       "outbounds": [
-        "direct"
+        "direct",
+        "block"
       ],
       "default": "direct",
       "interrupt_exist_connections": true

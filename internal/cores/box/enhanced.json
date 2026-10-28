@@ -90,6 +90,11 @@
         "action": "reject"
       },
       {
+        "clash_mode": "IPv6Only",
+        "query_type": "A",
+        "action": "reject"
+      },
+      {
         "query_type": [
           "HTTPS",
           "SVCB"
@@ -306,6 +311,11 @@
       {
         "clash_mode": "IPv4Only",
         "ip_version": 6,
+        "action": "reject"
+      },
+      {
+        "clash_mode": "IPv6Only",
+        "ip_version": 4,
         "action": "reject"
       },
       {
@@ -1173,10 +1183,15 @@
       "domain_resolver": "dns-cn"
     },
     {
+      "type": "block",
+      "tag": "block"
+    },
+    {
       "type": "selector",
       "tag": "🙋 Select",
       "outbounds": [
-        "direct"
+        "direct",
+        "block"
       ],
       "default": "direct",
       "interrupt_exist_connections": true
@@ -1185,6 +1200,8 @@
       "type": "selector",
       "tag": "🔍 Google",
       "outbounds": [
+        "direct",
+        "block",
         "🙋 Select"
       ],
       "default": "🙋 Select",
@@ -1194,6 +1211,8 @@
       "type": "selector",
       "tag": "🍎 Apple",
       "outbounds": [
+        "direct",
+        "block",
         "🙋 Select"
       ],
       "default": "🙋 Select",
@@ -1203,6 +1222,8 @@
       "type": "selector",
       "tag": "📦 Microsoft",
       "outbounds": [
+        "direct",
+        "block",
         "🙋 Select"
       ],
       "default": "🙋 Select",
@@ -1212,6 +1233,8 @@
       "type": "selector",
       "tag": "📥 Download",
       "outbounds": [
+        "direct",
+        "block",
         "🙋 Select"
       ],
       "default": "🙋 Select",
@@ -1221,7 +1244,10 @@
       "type": "selector",
       "tag": "🐈 Git",
       "outbounds": [
-        "📦 Microsoft"
+        "direct",
+        "block",
+        "📦 Microsoft",
+        "🙋 Select"
       ],
       "default": "📦 Microsoft",
       "interrupt_exist_connections": true
@@ -1230,6 +1256,8 @@
       "type": "selector",
       "tag": "🤖 AI-Service",
       "outbounds": [
+        "direct",
+        "block",
         "🙋 Select"
       ],
       "default": "🙋 Select",
@@ -1239,7 +1267,10 @@
       "type": "selector",
       "tag": "📺 Youtube",
       "outbounds": [
-        "🔍 Google"
+        "direct",
+        "block",
+        "🔍 Google",
+        "🙋 Select"
       ],
       "default": "🔍 Google",
       "interrupt_exist_connections": true
@@ -1248,6 +1279,8 @@
       "type": "selector",
       "tag": "🎬 Entertainment",
       "outbounds": [
+        "direct",
+        "block",
         "🙋 Select"
       ],
       "default": "🙋 Select",
@@ -1257,6 +1290,8 @@
       "type": "selector",
       "tag": "✈️ TelegramDC5(AP)",
       "outbounds": [
+        "direct",
+        "block",
         "🙋 Select"
       ],
       "default": "🙋 Select",
@@ -1266,6 +1301,8 @@
       "type": "selector",
       "tag": "✈️ TelegramDC1(NA)",
       "outbounds": [
+        "direct",
+        "block",
         "✈️ TelegramDC5(AP)",
         "🙋 Select"
       ],
@@ -1276,6 +1313,8 @@
       "type": "selector",
       "tag": "✈️ TelegramDC4(EU)",
       "outbounds": [
+        "direct",
+        "block",
         "✈️ TelegramDC5(AP)",
         "🙋 Select"
       ],
