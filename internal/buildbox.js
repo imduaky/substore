@@ -1319,7 +1319,10 @@ const _01_compatibility_js_entrypoint = (args) => {
   const { proxies, lib, constant, context } = args;
 
   const assignAndDelete = (obj, oldKey, newKey) => {
-    obj[newKey] = obj[oldKey];
+    obj[newKey] = {
+      ...(obj[oldKey] ?? {}),
+      ...(obj[newKey] ?? {}),
+    };
     delete obj[oldKey];
   };
 
@@ -1336,10 +1339,7 @@ const _01_compatibility_js_entrypoint = (args) => {
 
 const _10_apply_sort_js_entrypoint = (args) => {
   const { proxies, lib, constant, context } = args;
-
   const sortedProxies = lib.location.sortProxies({ proxies });
-
-  // Notice heer , different platform has different name selector (tag or name)
   const names = lib.default.produce(proxies, constant).map((pp) => pp.tag);
   return {
     ...args,
@@ -1435,7 +1435,7 @@ const _30_apply_geosite_geoip_js_entrypoint = (args) => {
 };
 
 const _40_apply_push_group_js_entrypoint = (args) => {
-  const { proxies, config, lib, constant, context } = args;
+  const { proxies, config, lib } = args;
 
   const out = proxies.filter((proxy) => !proxy?.props?.hidden);
   config.outbounds
@@ -1489,6 +1489,11 @@ const _40_apply_push_group_js_entrypoint = (args) => {
 const _50_apply_internal_dns_resolver_js_entrypoint = (args) => {
   const { config, proxies, lib, constant, context } = args;
 
+  const defaultDomainResolverObject =
+    typeof config.route.default_domain_resolver === "object"
+      ? config.route.default_domain_resolver
+      : {};
+
   const isDomain = (addr) => {
     if (!addr || addr.includes(":")) return false; // empty or IPv6
     const dots = addr.split(".");
@@ -1529,7 +1534,10 @@ const _50_apply_internal_dns_resolver_js_entrypoint = (args) => {
     // a dns server addressed by a domain needs a bootstrap resolver to
     // look up that address itself.
     if (isDomain(singDns.server)) {
-      singDns.domain_resolver = { server: constant.dns.direct };
+      singDns.domain_resolver = {
+        ...defaultDomainResolverObject,
+        server: constant.dns.direct,
+      };
     }
 
     return singDns;
@@ -1546,18 +1554,18 @@ const _50_apply_internal_dns_resolver_js_entrypoint = (args) => {
 
     const singDns = buildSingDns(proxy);
     dnsServers[singDns.tag] = singDns;
-    proxy._domain_resolver = { server: singDns.tag };
+    proxy._domain_resolver = {
+      ...defaultDomainResolverObject,
+      server: singDns.tag,
+    };
   }
 
-  if (Object.keys(dnsServers).length === 0) {
-    return { ...args, config, proxies };
-  }
+  if (Object.keys(dnsServers).length === 0) return { ...args, config, proxies };
 
-  config.dns = config.dns ?? {};
-  config.dns.servers = [
-    ...(config.dns.servers ?? []),
-    ...Object.values(dnsServers),
-  ];
+  config.dns = {
+    ...(config.dns ?? {}),
+    servers: [...(config.dns.servers ?? []), ...Object.values(dnsServers)],
+  };
 
   return { ...args, config, proxies };
 };

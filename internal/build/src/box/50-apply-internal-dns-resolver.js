@@ -1,6 +1,11 @@
 const entrypoint = (args) => {
   const { config, proxies, lib, constant, context } = args;
 
+  const defaultDomainResolverObject =
+    typeof config.route.default_domain_resolver === "object"
+      ? config.route.default_domain_resolver
+      : {};
+
   const isDomain = (addr) => {
     if (!addr || addr.includes(":")) return false; // empty or IPv6
     const dots = addr.split(".");
@@ -41,7 +46,10 @@ const entrypoint = (args) => {
     // a dns server addressed by a domain needs a bootstrap resolver to
     // look up that address itself.
     if (isDomain(singDns.server)) {
-      singDns.domain_resolver = { server: constant.dns.direct };
+      singDns.domain_resolver = {
+        ...defaultDomainResolverObject,
+        server: constant.dns.direct,
+      };
     }
 
     return singDns;
@@ -58,18 +66,18 @@ const entrypoint = (args) => {
 
     const singDns = buildSingDns(proxy);
     dnsServers[singDns.tag] = singDns;
-    proxy._domain_resolver = { server: singDns.tag };
+    proxy._domain_resolver = {
+      ...defaultDomainResolverObject,
+      server: singDns.tag,
+    };
   }
 
-  if (Object.keys(dnsServers).length === 0) {
-    return { ...args, config, proxies };
-  }
+  if (Object.keys(dnsServers).length === 0) return { ...args, config, proxies };
 
-  config.dns = config.dns ?? {};
-  config.dns.servers = [
-    ...(config.dns.servers ?? []),
-    ...Object.values(dnsServers),
-  ];
+  config.dns = {
+    ...(config.dns ?? {}),
+    servers: [...(config.dns.servers ?? []), ...Object.values(dnsServers)],
+  };
 
   return { ...args, config, proxies };
 };

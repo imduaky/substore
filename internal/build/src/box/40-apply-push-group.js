@@ -1,5 +1,5 @@
 const entrypoint = (args) => {
-  const { proxies, config, lib, constant, context } = args;
+  const { proxies, config, lib } = args;
 
   const out = proxies.filter((proxy) => !proxy?.props?.hidden);
   config.outbounds

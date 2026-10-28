@@ -2,7 +2,10 @@ const entrypoint = (args) => {
   const { proxies, lib, constant, context } = args;
 
   const assignAndDelete = (obj, oldKey, newKey) => {
-    obj[newKey] = obj[oldKey];
+    obj[newKey] = {
+      ...(obj[oldKey] ?? {}),
+      ...(obj[newKey] ?? {}),
+    };
     delete obj[oldKey];
   };
 
