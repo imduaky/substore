@@ -1,19 +1,10 @@
 const entrypoint = (args) => {
   const { proxies, config, experimental, lib, constant, context, ua } = args;
 
-  const transportGroups = lib.transport.completeTransport({
+  const transportGroups = lib.transport.complete({
     proxies: proxies,
-    detourName: (cca2) => {
-      let defaultTransportName = "🚀 Transport";
-      // if (ua?.isZhCN) {
-      //   defaultTransportName = "🚀 链式传输";
-      // } else if (ua?.isZhTW) {
-      //   defaultTransportName = "🚀 鏈式傳輸";
-      // }
-      return cca2
-        ? defaultTransportName + " (" + cca2 + ")"
-        : defaultTransportName;
-    },
+    detourName: (cca2) =>
+      cca2 ? "🚀 Transport" + " (" + cca2 + ")" : "🚀 Transport",
   });
 
   Object.keys(transportGroups).map((selectorName) => {
@@ -31,8 +22,7 @@ const entrypoint = (args) => {
   return {
     ...args,
     proxies: proxies.filter(
-      (proxy) =>
-        !lib.transport.isDestionation({ proxy }) || "dialer-proxy" in proxy,
+      (proxy) => !lib.transport.isDest({ proxy }) || "dialer-proxy" in proxy,
     ),
   };
 };

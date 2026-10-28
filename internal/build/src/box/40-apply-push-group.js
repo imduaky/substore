@@ -1,9 +1,7 @@
 const entrypoint = (args) => {
   const { proxies, config, lib, constant, context } = args;
 
-  const out = proxies.filter(
-    (proxy) => !proxy?.props?.hidden || !proxy?.props?.hiddenAll,
-  );
+  const out = proxies.filter((proxy) => !proxy?.props?.hidden);
   config.outbounds
     .filter((p) => ["selector", "urltest"].includes(p.type))
     .map((selector) => {

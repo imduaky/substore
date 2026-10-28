@@ -1,14 +1,14 @@
 const featureLocation = lib.location;
 
-const isTransport = ({ proxy }) => {
-  return proxy?.props?.transport || proxy?.props?.transport?.is;
+const isTrans = ({ proxy }) => {
+  return proxy?.props?.trans || proxy?.props?.trans?.is;
 };
 
-const isDestionation = ({ proxy }) => {
-  return proxy?.props?.destination || proxy?.props?.destination?.is;
+const isDest = ({ proxy }) => {
+  return proxy?.props?.dest || proxy?.props?.dest?.is;
 };
 
-const completeTransport = ({ proxies, detourName, fallback }) => {
+const complete = ({ proxies, detourName, fallback }) => {
   if (detourName === undefined) {
     detourName = (cca2) => {
       if (cca2 === "") {
@@ -26,10 +26,8 @@ const completeTransport = ({ proxies, detourName, fallback }) => {
     );
   }
 
-  const transportProxies = proxies.filter((proxy) => isTransport({ proxy }));
-  const destinationProxies = proxies.filter((proxy) =>
-    isDestionation({ proxy }),
-  );
+  const transportProxies = proxies.filter((proxy) => isTrans({ proxy }));
+  const destinationProxies = proxies.filter((proxy) => isDest({ proxy }));
 
   const transportGroups = {};
   for (const tp of transportProxies) {
@@ -48,22 +46,22 @@ const completeTransport = ({ proxies, detourName, fallback }) => {
   for (const dp of destinationProxies) {
     const destinationRequiredLocation = [];
     if (
-      typeof dp.props.destination !== "boolean" &&
-      dp.props.destination.require !== undefined
+      typeof dp.props.dest !== "boolean" &&
+      dp.props.dest.require !== undefined
     ) {
-      if (typeof dp.props.destination.requires === "string")
-        destinationRequiredLocation.push(dp.props.destination.require);
-      else if (Array.isArray(dp.props.destination.require))
-        destinationRequiredLocation.push(...dp.props.destination.require);
+      if (typeof dp.props.dest.requires === "string")
+        destinationRequiredLocation.push(dp.props.dest.require);
+      else if (Array.isArray(dp.props.dest.require))
+        destinationRequiredLocation.push(...dp.props.dest.require);
     } else {
       const destinationLocation = featureLocation.getLocation(dp);
       if (destinationLocation !== "")
         destinationRequiredLocation.push(destinationLocation);
 
-      if (typeof dp.props.destination.suits === "string")
-        destinationRequiredLocation.push(dp.props.destination.suits);
-      else if (Array.isArray(dp.props.destination.suits))
-        destinationRequiredLocation.push(...dp.props.destination.suits);
+      if (typeof dp.props.dest.suits === "string")
+        destinationRequiredLocation.push(dp.props.dest.suits);
+      else if (Array.isArray(dp.props.dest.suits))
+        destinationRequiredLocation.push(...dp.props.dest.suits);
       if (Array.isArray(fallback))
         destinationRequiredLocation.push(...fallback);
     }
@@ -83,7 +81,7 @@ const completeTransport = ({ proxies, detourName, fallback }) => {
 };
 
 lib.transport = {
-  completeTransport,
-  isTransport,
-  isDestionation,
+  complete,
+  isTrans,
+  isDest,
 };

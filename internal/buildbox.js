@@ -1228,15 +1228,15 @@ lib.location = {
 (() => {
 const featureLocation = lib.location;
 
-const isTransport = ({ proxy }) => {
-  return proxy?.props?.transport || proxy?.props?.transport?.is;
+const isTrans = ({ proxy }) => {
+  return proxy?.props?.trans || proxy?.props?.trans?.is;
 };
 
-const isDestionation = ({ proxy }) => {
-  return proxy?.props?.destination || proxy?.props?.destination?.is;
+const isDest = ({ proxy }) => {
+  return proxy?.props?.dest || proxy?.props?.dest?.is;
 };
 
-const completeTransport = ({ proxies, detourName, fallback }) => {
+const complete = ({ proxies, detourName, fallback }) => {
   if (detourName === undefined) {
     detourName = (cca2) => {
       if (cca2 === "") {
@@ -1254,10 +1254,8 @@ const completeTransport = ({ proxies, detourName, fallback }) => {
     );
   }
 
-  const transportProxies = proxies.filter((proxy) => isTransport({ proxy }));
-  const destinationProxies = proxies.filter((proxy) =>
-    isDestionation({ proxy }),
-  );
+  const transportProxies = proxies.filter((proxy) => isTrans({ proxy }));
+  const destinationProxies = proxies.filter((proxy) => isDest({ proxy }));
 
   const transportGroups = {};
   for (const tp of transportProxies) {
@@ -1276,22 +1274,22 @@ const completeTransport = ({ proxies, detourName, fallback }) => {
   for (const dp of destinationProxies) {
     const destinationRequiredLocation = [];
     if (
-      typeof dp.props.destination !== "boolean" &&
-      dp.props.destination.require !== undefined
+      typeof dp.props.dest !== "boolean" &&
+      dp.props.dest.require !== undefined
     ) {
-      if (typeof dp.props.destination.requires === "string")
-        destinationRequiredLocation.push(dp.props.destination.require);
-      else if (Array.isArray(dp.props.destination.require))
-        destinationRequiredLocation.push(...dp.props.destination.require);
+      if (typeof dp.props.dest.requires === "string")
+        destinationRequiredLocation.push(dp.props.dest.require);
+      else if (Array.isArray(dp.props.dest.require))
+        destinationRequiredLocation.push(...dp.props.dest.require);
     } else {
       const destinationLocation = featureLocation.getLocation(dp);
       if (destinationLocation !== "")
         destinationRequiredLocation.push(destinationLocation);
 
-      if (typeof dp.props.destination.suits === "string")
-        destinationRequiredLocation.push(dp.props.destination.suits);
-      else if (Array.isArray(dp.props.destination.suits))
-        destinationRequiredLocation.push(...dp.props.destination.suits);
+      if (typeof dp.props.dest.suits === "string")
+        destinationRequiredLocation.push(dp.props.dest.suits);
+      else if (Array.isArray(dp.props.dest.suits))
+        destinationRequiredLocation.push(...dp.props.dest.suits);
       if (Array.isArray(fallback))
         destinationRequiredLocation.push(...fallback);
     }
@@ -1311,11 +1309,30 @@ const completeTransport = ({ proxies, detourName, fallback }) => {
 };
 
 lib.transport = {
-  completeTransport,
-  isTransport,
-  isDestionation,
+  complete,
+  isTrans,
+  isDest,
 };
 })();
+
+const _01_compatibility_js_entrypoint = (args) => {
+  const { proxies, lib, constant, context } = args;
+
+  const assignAndDelete = (obj, oldKey, newKey) => {
+    obj[newKey] = obj[oldKey];
+    delete obj[oldKey];
+  };
+
+  return {
+    ...args,
+    proxies: proxies.map((p) => {
+      if (p.properties) assignAndDelete(p, "properties", "props");
+      if (p.props?.transport) assignAndDelete(p.props, "transport", "trans");
+      if (p.props?.destination) assignAndDelete(p.props, "destination", "dest");
+      return p;
+    }),
+  };
+};
 
 const _10_apply_sort_js_entrypoint = (args) => {
   const { proxies, lib, constant, context } = args;
@@ -1331,13 +1348,15 @@ const _10_apply_sort_js_entrypoint = (args) => {
 };
 
 const _19_ipstack_js_entrypoint = (args) => {
-  const { proxies, lib, constant, context } = args;
+  const { proxies } = args;
 
   return {
     ...args,
     proxies: proxies.map((p) => {
-      if (p.props?.ipv4 === undefined && p.props?.ipv6 === undefined) {
-      }
+      if (p.props?.hidden) return p;
+      if (p.props?.ipv6 === false) p.name += "_4";
+      if (p.props?.ipv4 === false) p.name += "_6";
+      return p;
     }),
   };
 };
@@ -1345,19 +1364,10 @@ const _19_ipstack_js_entrypoint = (args) => {
 const _20_apply_transport_js_entrypoint = (args) => {
   const { proxies, config, experimental, lib, constant, context, ua } = args;
 
-  const transportGroups = lib.transport.completeTransport({
+  const transportGroups = lib.transport.complete({
     proxies: proxies,
-    detourName: (cca2) => {
-      let defaultTransportName = "🚀 Transport";
-      // if (ua?.isZhCN) {
-      //   defaultTransportName = "🚀 链式传输";
-      // } else if (ua?.isZhTW) {
-      //   defaultTransportName = "🚀 鏈式傳輸";
-      // }
-      return cca2
-        ? defaultTransportName + " (" + cca2 + ")"
-        : defaultTransportName;
-    },
+    detourName: (cca2) =>
+      cca2 ? "🚀 Transport" + " (" + cca2 + ")" : "🚀 Transport",
   });
 
   Object.keys(transportGroups).map((selectorName) => {
@@ -1375,8 +1385,7 @@ const _20_apply_transport_js_entrypoint = (args) => {
   return {
     ...args,
     proxies: proxies.filter(
-      (proxy) =>
-        !lib.transport.isDestionation({ proxy }) || "dialer-proxy" in proxy,
+      (proxy) => !lib.transport.isDest({ proxy }) || "dialer-proxy" in proxy,
     ),
   };
 };
@@ -1428,9 +1437,7 @@ const _30_apply_geosite_geoip_js_entrypoint = (args) => {
 const _40_apply_push_group_js_entrypoint = (args) => {
   const { proxies, config, lib, constant, context } = args;
 
-  const out = proxies.filter(
-    (proxy) => !proxy?.props?.hidden || !proxy?.props?.hiddenAll,
-  );
+  const out = proxies.filter((proxy) => !proxy?.props?.hidden);
   config.outbounds
     .filter((p) => ["selector", "urltest"].includes(p.type))
     .map((selector) => {
@@ -1827,7 +1834,7 @@ const _73_apply_platform_settings_js_entrypoint = (args) => {
       );
 
     // on macos , gvisor has better performance.
-    tunInbound.stack = "gvisor";
+    if (ua?.minor <= 14) tunInbound.stack = "gvisor";
 
     if (tunInbound.platform?.http_proxy?.enabled)
       tunInbound.platform.http_proxy.enabled = false;
@@ -1844,103 +1851,6 @@ const _74_apply_super_secret_js_post_entrypoint = (args) => {
   // if (override && typeof override === "object") return override;
   return args;
 };
-
-// const entrypoint = ({ config = {}, ua = undefined, lib, constant = {}, context, ...rest }) => {
-//   const ret = { config, ua, ...rest };
-//   const translations = {
-//     "🙋 Select": {
-//       zh_CN: "🙋 手动选择",
-//       zh_TW: "🙋 手動選擇",
-//       fa: "🙋 انتخاب دستی",
-//       ru: "🙋 Ручной выбор",
-//     },
-//     "🔍 Google": {
-//       zh_CN: "🔍 谷歌服务",
-//       zh_TW: "🔍 谷歌服務",
-//       fa: "🔍 سرویس‌های گوگل",
-//       ru: "🔍 Сервисы Google",
-//     },
-//     "🐈 Git": {
-//       zh_CN: "🐈 开发服务",
-//       zh_TW: "🐈 開發服務",
-//       fa: "🐈 سرویس‌های توسعه",
-//       ru: "🐈 Сервисы разработки",
-//     },
-//     "📦 Microsoft": {
-//       zh_CN: "📦 微软服务",
-//       zh_TW: "📦 微軟服務",
-//       fa: "📦 سرویس‌های مایکروسافت",
-//       ru: "📦 Сервисы Microsoft",
-//     },
-//     "📺 Youtube": {
-//       zh_CN: "📺 油管",
-//       zh_TW: "📺 油管",
-//       fa: "📺 یوتیوب",
-//       ru: "📺 YouTube",
-//     },
-//     "🎬 Entertainment": {
-//       zh_CN: "🎬 流媒体",
-//       zh_TW: "🎬 串流媒體",
-//       fa: "🎬 سرگرمی",
-//       ru: "🎬 Развлечения",
-//     },
-//     "🤖 AI-Service": {
-//       zh_CN: "🤖 AI服务",
-//       zh_TW: "🤖 AI 服務",
-//       fa: "🤖 سرویس هوش مصنوعی",
-//       ru: "🤖 Сервисы ИИ",
-//     },
-//     "🍎 Apple": {
-//       zh_CN: "🍎 苹果服务",
-//       zh_TW: "🍎 蘋果服務",
-//       fa: "🍎 سرویس‌های اپل",
-//       ru: "🍎 Сервисы Apple",
-//     },
-//     "✈️ TelegramDC1(NA)": {
-//       zh_CN: "✈️ 电报DC1 (北美)",
-//       zh_TW: "✈️ 電報DC1 (北美)",
-//       fa: "✈️ تلگرام DC1 (آمریکای شمالی)",
-//       ru: "✈️ Telegram DC1 (Северная Америка)",
-//     },
-//     "✈️ TelegramDC4(EU)": {
-//       zh_CN: "✈️ 电报DC4 (欧洲)",
-//       zh_TW: "✈️ 電報DC4 (歐洲)",
-//       fa: "✈️ تلگرام DC4 (اروپا)",
-//       ru: "✈️ Telegram DC4 (Европа)",
-//     },
-//     "✈️ TelegramDC5(AP)": {
-//       zh_CN: "✈️ 电报DC5 (亚太)",
-//       zh_TW: "✈️ 電報DC5 (亞太)",
-//       fa: "✈️ تلگرام DC5 (آسیا-اقیانوسیه)",
-//       ru: "✈️ Telegram DC5 (Азиатско-Тихоокеанский регион)",
-//     },
-//   };
-
-//   let translation;
-//   if (ua?.isZhCN) {
-//     translation = "zh_CN";
-//   } else if (ua?.isZhTW) {
-//     translation = "zh_TW";
-//   } else if (ua?.isEnUS) {
-//     translation = "en_US";
-//   } else if (ua?.isFa) {
-//     translation = "fa";
-//   } else if (ua?.isRu) {
-//     translation = "ru";
-//   }
-
-//   if (!config || !translation) {
-//     return ret;
-//   }
-
-//   let jsonConfig = JSON.stringify(config);
-//   Object.entries(translations).map(([raw, localized]) => {
-//     const target = localized[translation] ?? raw;
-//     jsonConfig = jsonConfig.replaceAll(raw, target);
-//   });
-
-//   return { config: JSON.parse(jsonConfig), ua, ...rest };
-// };
 
 const _entry_js_entrypoint = async (args) => {
   const { context, lib, constant } = args;
@@ -2192,6 +2102,7 @@ lib.default = {
 };
 
 await _entry_js_entrypoint({ ...({} || {}), lib: __lib, constant: __constant, context: __context })
+  .then((value) => _01_compatibility_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _10_apply_sort_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _19_ipstack_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))
   .then((value) => _20_apply_transport_js_entrypoint({ ...(value || {}), lib: __lib, constant: __constant, context: __context }))

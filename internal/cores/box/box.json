@@ -890,7 +890,6 @@
       ],
       "auto_route": true,
       "dns_mode": "hijack",
-      "stack": "mixed",
       "dns_address": [
         "172.27.0.2",
         "fdfe:dcba:9876::2"
