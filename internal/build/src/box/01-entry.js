@@ -1,9 +1,10 @@
 const entrypoint = async (args) => {
-  const { context, lib, constant } = args;
+  const { context } = args;
 
   const lookupQuery = (name) => {
     return $options?._req?.query?.[name];
   };
+
   const sourceContent =
     typeof $content === "string" && $content.trim() !== ""
       ? $content.trim()
@@ -14,11 +15,6 @@ const entrypoint = async (args) => {
   const generated = {
     config: JSON.parse(sourceContent || "{}"),
     experimental: {},
-    ua: lib.default.uaLookup(
-      $options?._req?.headers?.["user-agent"] ||
-        $options?._req?.headers?.["User-Agent"] ||
-        context.test?.ua,
-    ),
   };
 
   if (lookupQuery("user") || context.test?.user) {

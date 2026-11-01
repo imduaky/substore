@@ -13,9 +13,7 @@ const srcRoot = path.join(repoRoot, "internal", "build", "src");
 const featuresDir = path.join(repoRoot, "features");
 const outDir = path.join(repoRoot, "internal");
 
-const targets = [
-  { core: "box", out: "buildbox" },
-];
+const targets = [{ core: "box", out: "buildbox" }];
 
 const banner = (core) =>
   [
@@ -28,13 +26,18 @@ const listJs = (dir) =>
     .readdirSync(dir, { withFileTypes: true })
     .flatMap((entry) => {
       const file = path.join(dir, entry.name);
-      return entry.isDirectory() ? listJs(file) : entry.name.endsWith(".js") ? [file] : [];
+      return entry.isDirectory()
+        ? listJs(file)
+        : entry.name.endsWith(".js")
+          ? [file]
+          : [];
     })
     .sort((a, b) => a.localeCompare(b));
 
 const featureFile = (name) => path.join(featuresDir, name, "load.js");
 
-const sourceBody = (file) => fs.readFileSync(file, "utf8").replace(/^#!.*\n/, "");
+const sourceBody = (file) =>
+  fs.readFileSync(file, "utf8").replace(/^#!.*\n/, "");
 
 // Fragments and features are inlined as plain script bodies (features inside
 // an arrow function), so parse them as scripts and allow a top-level return.
@@ -79,7 +82,9 @@ const resolveFeatures = (rootReferences) => {
   const visit = (name, chain) => {
     if (state.get(name) === "done") return;
     if (state.get(name) === "visiting") {
-      throw new Error(`circular lib dependency: ${[...chain, name].join(" -> ")}`);
+      throw new Error(
+        `circular lib dependency: ${[...chain, name].join(" -> ")}`,
+      );
     }
     const file = featureFile(name);
     if (!fs.existsSync(file)) {
@@ -93,7 +98,9 @@ const resolveFeatures = (rootReferences) => {
     state.set(name, "done");
     ordered.push(name);
   };
-  for (const name of [...rootReferences].filter((name) => name !== "default").sort()) {
+  for (const name of [...rootReferences]
+    .filter((name) => name !== "default")
+    .sort()) {
     visit(name, []);
   }
   return ordered;
@@ -143,7 +150,8 @@ const renameIdentifiers = (body, renames) =>
   renames
     .sort((a, b) => b.id.start - a.id.start)
     .reduce(
-      (text, { id, name }) => text.slice(0, id.start) + name + text.slice(id.end),
+      (text, { id, name }) =>
+        text.slice(0, id.start) + name + text.slice(id.end),
       body,
     );
 
@@ -172,12 +180,12 @@ const preparePart = (file, coreDir) => {
   };
 };
 
-const invoke = (name, value) =>
-  `${name}({ ...(${value} || {}), lib: __lib, constant: __constant, context: __context })`;
+const invoke = (name, value) => `${name}(${value})`;
 
 const assemble = (core) => {
   const dir = path.join(srcRoot, core);
-  if (!fs.existsSync(dir)) throw new Error(`source directory not found: ${dir}`);
+  if (!fs.existsSync(dir))
+    throw new Error(`source directory not found: ${dir}`);
   const files = listJs(dir);
   if (!files.length) throw new Error(`no source files found under ${dir}`);
 
@@ -191,19 +199,12 @@ const assemble = (core) => {
     return `// lib: ${name}\n(() => {\n${body}\n})();`;
   });
 
-  // entry.js is the global main function and seeds the chain. Other
-  // entrypoints follow file order. Post entrypoints are a stack: a post
-  // function is pushed as its fragment is reached and the stack is drained
-  // after all entrypoints, so entry.js post processing runs last.
+  // Entrypoints follow file order. Prefixing the bootstrap fragment with
+  // `00-` makes it run first, while post entrypoints are a stack so the
+  // bootstrap post step runs last.
   const entryParts = parts.filter((part) => part.hasEntrypoint);
-  const main = entryParts.find((part) => part.relative === "entry.js");
-  if (!main) throw new Error(`${dir}: entry.js must define entrypoint`);
-  const orderedEntries = [main, ...entryParts.filter((part) => part !== main)];
-  const postCandidates = [
-    main,
-    ...parts.filter((part) => part !== main && part.hasPostEntrypoint),
-  ].filter((part) => part.hasPostEntrypoint);
-  const orderedPosts = postCandidates.reverse();
+  const orderedEntries = entryParts;
+  const orderedPosts = parts.filter((part) => part.hasPostEntrypoint).reverse();
   const calls = [
     ...orderedEntries.map((part) => part.entryName),
     ...orderedPosts.map((part) => part.postName),
@@ -211,21 +212,23 @@ const assemble = (core) => {
   if (!calls.length) throw new Error(`${dir}: no entrypoint functions found`);
 
   const chain = [
-    `await ${invoke(calls[0], "{}")}`,
-    ...calls.slice(1).map((name) => `  .then((value) => ${invoke(name, "value")})`),
+    `await Promise.resolve(${invoke(
+      calls[0],
+      "{ lib, context: context ?? {} }",
+    )})`,
+    ...calls
+      .slice(1)
+      .map((name) => `  .then((value) => ${invoke(name, "value")})`),
     ";",
   ].join("\n");
-  const body = [
-    banner(core),
-    "const __lib = {};",
-    "const lib = __lib;",
-    "const constant = {};",
-    "const __constant = constant;",
-    "const __context = typeof context === \"undefined\" ? {} : context;",
-    ...featureBlocks,
-    ...parts.map((part) => part.body).filter(Boolean),
-    chain,
-  ].join("\n\n") + "\n";
+  const body =
+    [
+      banner(core),
+      "const lib = {};",
+      ...featureBlocks,
+      ...parts.map((part) => part.body).filter(Boolean),
+      chain,
+    ].join("\n\n") + "\n";
 
   return {
     body,

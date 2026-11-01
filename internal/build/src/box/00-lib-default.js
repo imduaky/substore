@@ -1,23 +1,3 @@
-Object.assign(constant, {
-  platform: "sing-box",
-  outbound: {
-    direct: "direct",
-  },
-  http_client: {
-    direct: "http-direct",
-  },
-  dns: {
-    direct: "dns-cn",
-    ecs: "dns-ecs",
-  },
-  network: {
-    tailnetIPRanges: ["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
-  },
-  clashMode: {
-    ipv6Only: "IPv6Only",
-  },
-});
-
 const assembleConfig = (args) => {
   const { config, proxies, endpoints, lib, constant } = args;
 
@@ -155,14 +135,27 @@ const findTun = (config = {}) => {
   return found.length > 0 ? found[0] : undefined;
 };
 
-lib.default = {
-  assembleConfig,
-  produce,
-  produceEndpoint,
-  createSemverInfo,
-  parseSemver,
-  createUaInfo,
-  applyUaLanguage,
-  uaLookup,
-  findTun,
+const entrypoint = (args) => {
+  const { context, lib } = args;
+
+  lib.default = {
+    assembleConfig,
+    produce,
+    produceEndpoint,
+    createSemverInfo,
+    parseSemver,
+    createUaInfo,
+    applyUaLanguage,
+    uaLookup,
+    findTun,
+  };
+
+  return {
+    ...args,
+    ua: lib.default.uaLookup(
+      $options?._req?.headers?.["user-agent"] ||
+        $options?._req?.headers?.["User-Agent"] ||
+        context.test?.ua,
+    ),
+  };
 };
