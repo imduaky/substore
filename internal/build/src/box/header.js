@@ -13,6 +13,9 @@ Object.assign(constant, {
   network: {
     tailnetIPRanges: ["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
   },
+  clashMode: {
+    ipv6Only: "IPv6Only",
+  },
 });
 
 const assembleConfig = (args) => {
