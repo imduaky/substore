@@ -17,6 +17,7 @@ const entrypoint = (args) => {
         tailnetIPRanges: ["100.64.0.0/10", "fd7a:115c:a1e0::/48"],
       },
       clashMode: {
+        ipv4Only: "IPv4Only",
         ipv6Only: "IPv6Only",
       },
     },
