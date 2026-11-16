@@ -238,7 +238,7 @@
     "default_http_client": "http-direct",
     "default_domain_resolver": {
       "server": "dns-cn",
-      "rewrite_ttl": 3600,
+      "rewrite_ttl": 600,
       "strategy": "prefer_ipv4",
       "disable_optimistic_cache": true
     }
