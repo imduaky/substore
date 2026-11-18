@@ -1995,10 +1995,11 @@ const _65_apply_exclude_address_js_entrypoint = (args) => {
 };
 
 const _70_apply_cache_id_js_entrypoint = async (args) => {
-  const { config, context, ua, lib } = args;
+  const { config, context, ua, lib, experimental } = args;
   if (
     !config?.experimental?.cache_file?.enabled ||
-    config?.experimental?.cache_file?.cache_id
+    config?.experimental?.cache_file?.cache_id ||
+    !experimental.use_independ_cache_file
   )
     return args;
   const hashElem = [];
