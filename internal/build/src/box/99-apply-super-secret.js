@@ -1,4 +1,4 @@
-const postEntrypoint = (args) => {
+const entrypoint = (args) => {
   const { context, lib, constant } = args;
 
   const override = context.secret?.superSecretSettings;

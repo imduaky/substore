@@ -61,12 +61,6 @@
         "detour": "📦 Microsoft"
       },
       {
-        "tag": "dns-download",
-        "type": "https",
-        "server": "1.1.1.1",
-        "detour": "📥 Download"
-      },
-      {
         "tag": "dns-europe",
         "type": "https",
         "server": "1.1.1.1",
@@ -219,16 +213,6 @@
         "server": "dns-local"
       },
       {
-        "rule_set": [
-          "@geosite-download",
-          "geosite-category-game-platforms-download",
-          "geosite-category-android-app-download",
-          "geosite-curseforge"
-        ],
-        "action": "route",
-        "server": "dns-download"
-      },
-      {
         "rule_set": ["geosite-geolocation-!cn"],
         "action": "route",
         "server": "dns-final"
@@ -264,7 +248,8 @@
     "final": "dns-final",
     "reverse_mapping": true,
     "optimistic": {
-      "enabled": false
+      "enabled": true,
+      "timeout": "1d"
     }
   },
   "route": {
@@ -437,16 +422,6 @@
           "@geosite-cloudflare-challenge"
         ],
         "outbound": "🎬 Entertainment"
-      },
-      {
-        "rule_set": [
-          "@geosite-download",
-          "geosite-category-game-platforms-download",
-          "geosite-category-android-app-download",
-          "geosite-curseforge"
-        ],
-        "action": "route",
-        "outbound": "📥 Download"
       }
     ],
     "rule_set": [
@@ -456,7 +431,7 @@
         "rules": [
           {
             "domain": [
-              "__this_is_a_placehold_domain_._this_rule_is_generated_by_substore.example.com"
+              "__this_is_a_placehold_domain_._this_rule_is_generated_by_substore.com"
             ]
           }
         ]
@@ -488,20 +463,12 @@
     },
     "clash_api": {
       "external_ui": "duakboard",
-      "external_ui_download_url": "https://github.com/duakc/duakboard/releases/latest/download/duakboard.zip",
+      "external_ui_download_url": "https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip",
       "external_controller": "127.0.0.1:9090",
       "default_mode": "Smart",
       "secret": "20002000"
     }
   },
-  "services": [
-    {
-      "type": "api",
-      "tag": "service-main-api",
-      "listen": "127.0.0.1",
-      "listen_port": 9091
-    }
-  ],
   "inbounds": [
     {
       "type": "tun",
@@ -573,16 +540,9 @@
     },
     {
       "type": "selector",
-      "tag": "📥 Download",
-      "outbounds": ["direct", "block", "🙋 Select"],
-      "default": "🙋 Select",
-      "interrupt_exist_connections": true
-    },
-    {
-      "type": "selector",
       "tag": "🐈 Git",
-      "outbounds": ["direct", "block", "📦 Microsoft", "🙋 Select"],
-      "default": "📦 Microsoft",
+      "outbounds": ["direct", "🙋 Select"],
+      "default": "🙋 Select",
       "interrupt_exist_connections": true
     },
     {
@@ -595,7 +555,7 @@
     {
       "type": "selector",
       "tag": "📺 Youtube",
-      "outbounds": ["direct", "block", "🔍 Google", "🙋 Select"],
+      "outbounds": ["direct", "block", "🔍 Google"],
       "default": "🔍 Google",
       "interrupt_exist_connections": true
     },

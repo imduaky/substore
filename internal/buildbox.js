@@ -1741,7 +1741,6 @@ const _40_apply_push_group_js_entrypoint = (args) => {
           "🔍 Google",
           "🐈 Git",
           "📦 Microsoft",
-          "📥 Download",
           "🎬 Entertainment",
           "📺 Youtube",
           "🤖 AI-Service",
@@ -2146,7 +2145,7 @@ const _73_apply_platform_settings_js_entrypoint = (args) => {
   return { ...args, config };
 };
 
-const _74_apply_super_secret_js_post_entrypoint = (args) => {
+const _99_apply_super_secret_js_entrypoint = (args) => {
   const { context, lib, constant } = args;
 
   const override = context.secret?.superSecretSettings;
@@ -2171,6 +2170,6 @@ await Promise.resolve(_00_lib_default_js_entrypoint({ lib, context: context ?? {
   .then((value) => _71_apply_bootstrap_direct_js_entrypoint(value))
   .then((value) => _72_apply_dns_enhanced_js_entrypoint(value))
   .then((value) => _73_apply_platform_settings_js_entrypoint(value))
-  .then((value) => _74_apply_super_secret_js_post_entrypoint(value))
+  .then((value) => _99_apply_super_secret_js_entrypoint(value))
   .then((value) => _01_entry_js_post_entrypoint(value))
 ;

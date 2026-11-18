@@ -11,7 +11,6 @@ const entrypoint = (args) => {
           "🔍 Google",
           "🐈 Git",
           "📦 Microsoft",
-          "📥 Download",
           "🎬 Entertainment",
           "📺 Youtube",
           "🤖 AI-Service",
