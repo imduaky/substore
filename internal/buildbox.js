@@ -1325,6 +1325,20 @@ const assembleConfig = (args) => {
   return assembled;
 };
 
+const hashString = async () => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+
+  return hashHex;
+};
+
 const produce = (proxies = [], constant = {}) => {
   return JSON.parse(ProxyUtils.produce([...proxies], constant.platform))
     .outbounds;
@@ -1457,6 +1471,7 @@ const _00_lib_default_js_entrypoint = (args) => {
     applyUaLanguage,
     uaLookup,
     findTun,
+    hashString,
   };
 
   return {
@@ -1979,6 +1994,32 @@ const _65_apply_exclude_address_js_entrypoint = (args) => {
   return args;
 };
 
+const _70_apply_cache_id_js_entrypoint = (args) => {
+  const { config, context, ua, lib } = args;
+  if (
+    !config?.experimental?.cache_file?.enabled ||
+    config?.experimental?.cache_file?.cache_id
+  )
+    return args;
+
+  let cache_id = `${ua?.version?.full ? ua.version.full : "unknown_cache_id"}`;
+  if (context.secret?.metadata?.cacheId)
+    cache_id = `${cache_id}_${context.secret?.metadata?.cacheId}`;
+
+  const rulesetUrls = [];
+  (config?.route?.rule_set ?? [])
+    .filter((rs) => rs.type === "remote" && rs.url)
+    .map((rs) => rulesetUrls.push(rs.url));
+  const sortedRulesetUrls = rulesetUrls.sort().join("_");
+  if (sortedRulesetUrls)
+    cache_id = `${cache_id}_${lib.default.hashString(sortedRulesetUrls)}`;
+
+  return {
+    ...args,
+    config,
+  };
+};
+
 const _70_apply_sync_domain_resolver_js_entrypoint = (args) => {
   const { config, proxies, lib, constant, context } = args;
 
@@ -2166,6 +2207,7 @@ await Promise.resolve(_00_lib_default_js_entrypoint({ lib, context: context ?? {
   .then((value) => _50_apply_internal_dns_resolver_js_entrypoint(value))
   .then((value) => _60_apply_endpoints_js_entrypoint(value))
   .then((value) => _65_apply_exclude_address_js_entrypoint(value))
+  .then((value) => _70_apply_cache_id_js_entrypoint(value))
   .then((value) => _70_apply_sync_domain_resolver_js_entrypoint(value))
   .then((value) => _71_apply_bootstrap_direct_js_entrypoint(value))
   .then((value) => _72_apply_dns_enhanced_js_entrypoint(value))
