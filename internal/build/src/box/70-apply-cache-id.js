@@ -6,6 +6,7 @@ const entrypoint = async (args) => {
     !experimental.use_independ_cache_file
   )
     return args;
+
   const hashElem = [];
   hashElem.push(`${ua?.version?.full ? ua.version.full : "unknown_cache_id"}`);
   if (context.secret?.metadata?.cacheId)

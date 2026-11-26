@@ -31,7 +31,8 @@ const complete = ({ proxies, detourName, fallback }) => {
 
   const transportGroups = {};
   for (const tp of transportProxies) {
-    const transportLocation = featureLocation.getLocation(tp);
+    const lowerTransportLocation = featureLocation.getLocation(tp);
+    const transportLocation = lowerTransportLocation.toUpperCase();
 
     if (transportGroups[transportLocation] === undefined)
       transportGroups[transportLocation] = {
@@ -66,7 +67,7 @@ const complete = ({ proxies, detourName, fallback }) => {
         destinationRequiredLocation.push(...fallback);
     }
 
-    for (const loc of destinationRequiredLocation) {
+    for (const loc of destinationRequiredLocation.map((r) => r.toUpperCase())) {
       if ([loc] in transportGroups) {
         const selected = transportGroups[loc];
         selected.use = true;

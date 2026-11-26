@@ -1251,7 +1251,8 @@ const complete = ({ proxies, detourName, fallback }) => {
 
   const transportGroups = {};
   for (const tp of transportProxies) {
-    const transportLocation = featureLocation.getLocation(tp);
+    const lowerTransportLocation = featureLocation.getLocation(tp);
+    const transportLocation = lowerTransportLocation.toUpperCase();
 
     if (transportGroups[transportLocation] === undefined)
       transportGroups[transportLocation] = {
@@ -1286,7 +1287,7 @@ const complete = ({ proxies, detourName, fallback }) => {
         destinationRequiredLocation.push(...fallback);
     }
 
-    for (const loc of destinationRequiredLocation) {
+    for (const loc of destinationRequiredLocation.map((r) => r.toUpperCase())) {
       if ([loc] in transportGroups) {
         const selected = transportGroups[loc];
         selected.use = true;
@@ -1627,7 +1628,7 @@ const _10_apply_sort_js_entrypoint = (args) => {
 };
 
 const _19_ipstack_js_entrypoint = (args) => {
-  const { config, proxies, constant, experimental = {} } = args;
+  const { config, proxies, constant, experimental } = args;
 
   let includeIPv6Only = !!experimental.with_ipv6_only;
   let includeIPv4Only = !!experimental.with_ipv4_only;
@@ -1670,8 +1671,20 @@ const _19_ipstack_js_entrypoint = (args) => {
   };
 };
 
+const _20_apply_misc_experimental_js_entrypoint = (args) => {
+  const { config, experimental } = args;
+
+  if (experimental.do_not_interrupt)
+    (config.outbounds ?? []).forEach((out) => {
+      if (out?.interrupt_exist_connections)
+        out.interrupt_exist_connections = false;
+    });
+
+  return args;
+};
+
 const _20_apply_transport_js_entrypoint = (args) => {
-  const { proxies, config, experimental, lib, constant, context, ua } = args;
+  const { proxies, config, lib } = args;
 
   const transportGroups = lib.transport.complete({
     proxies: proxies,
@@ -2002,6 +2015,7 @@ const _70_apply_cache_id_js_entrypoint = async (args) => {
     !experimental.use_independ_cache_file
   )
     return args;
+
   const hashElem = [];
   hashElem.push(`${ua?.version?.full ? ua.version.full : "unknown_cache_id"}`);
   if (context.secret?.metadata?.cacheId)
@@ -2202,6 +2216,7 @@ await Promise.resolve(_00_lib_default_js_entrypoint({ lib, context: context ?? {
   .then((value) => _05_compatibility_js_entrypoint(value))
   .then((value) => _10_apply_sort_js_entrypoint(value))
   .then((value) => _19_ipstack_js_entrypoint(value))
+  .then((value) => _20_apply_misc_experimental_js_entrypoint(value))
   .then((value) => _20_apply_transport_js_entrypoint(value))
   .then((value) => _30_apply_geosite_geoip_js_entrypoint(value))
   .then((value) => _40_apply_push_group_js_entrypoint(value))

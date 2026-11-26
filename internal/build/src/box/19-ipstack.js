@@ -1,5 +1,5 @@
 const entrypoint = (args) => {
-  const { config, proxies, constant, experimental = {} } = args;
+  const { config, proxies, constant, experimental } = args;
 
   let includeIPv6Only = !!experimental.with_ipv6_only;
   let includeIPv4Only = !!experimental.with_ipv4_only;

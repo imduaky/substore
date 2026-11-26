@@ -1,5 +1,5 @@
 const entrypoint = (args) => {
-  const { proxies, config, experimental, lib, constant, context, ua } = args;
+  const { proxies, config, lib } = args;
 
   const transportGroups = lib.transport.complete({
     proxies: proxies,
